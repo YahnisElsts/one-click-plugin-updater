@@ -22,7 +22,7 @@ To be able to display the new link this plugin will hide the original update not
 
 All this happens in the background, so if everything works OK you'll end up back at the "Plugins" tab. If there are any errors the updater will display an error message and abort the upgrade.
 
-[One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/ "One Click Plugin Updater Homepage")
+More info - [One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/ "One Click Plugin Updater Homepage")
 
 == Installation ==
 
