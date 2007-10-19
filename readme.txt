@@ -12,6 +12,7 @@ Adds an "update automatically" link to plugin update notifications and lets you 
 This plugin extends the plugin update notification feature introduced in WordPress 2.3 by adding an "update automatically" link to update notifications. When you click the link, the new version of the corresponding plugin is downloaded and installed automatically.
 
 **How It Works (In Detail)**
+
 To be able to display the new link this plugin will hide the original update notification and display a slightly modified one. Here's what happens when you click the "update automatically" link :
 
 1. If the plugin that needs to be updated is active, it is deactivated.
@@ -26,10 +27,11 @@ All this happens in the background, so if everything works OK you'll end up back
 == Installation ==
 
 **Additional Requirements**
+
 * The CURL library installed or allow_url_fopen enabled in php.ini
 * The *plugins* directory needs to be writable by the webserver. The exact permission requirements vary by server, though CHMOD 666 should be sufficient.
 
-To do a new installation of the plugin, please follow these steps
+To install the plugin follow these steps :
 
 1. Download the one-click-plugin-updater.zip file to your local machine.
 1. Unzip the file 
