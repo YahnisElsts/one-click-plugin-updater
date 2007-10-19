@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: One Click Plugin Updater
-Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
+Plugin URI: http://wordpress.org/extend/plugins/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications.
 Version: 1.0
 Author: Janis Elsts
