@@ -28,7 +28,7 @@ More info - [One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10
 
 **Additional Requirements**
 
-* The CURL library installed or allow_url_fopen enabled in php.ini
+* The CURL library installed or "allow url fopen" enabled in php.ini
 * The *plugins* directory needs to be writable by the webserver. The exact permission requirements vary by server, though CHMOD 666 should be sufficient.
 
 To install the plugin follow these steps :
