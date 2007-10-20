@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: One Click Plugin Updater
-Plugin URI: http://wordpress.org/extend/plugins/one-click-plugin-updater/
+Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications.
-Version: 1.0
+Version: 1.0.1
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -108,9 +108,15 @@ class ws_oneclick_pup {
 	
 	function extractPlugin($zipfile) {
 	    $archive = new PclZip($zipfile);
-        $rez = $archive->extract(
-        	PCLZIP_OPT_PATH, ABSPATH.'wp-content/plugins/', PCLZIP_OPT_REPLACE_NEWER);
-        return $rez != 0;
+        if ($archive->extract(PCLZIP_OPT_PATH, ABSPATH.'wp-content/plugins/', PCLZIP_OPT_REPLACE_NEWER) == 0) {
+	        if (function_exists('exec')) {
+				exec("unzip -d ".ABSPATH."wp-content/plugins/ $zipfile");
+				return true;
+            }
+        } else {
+	        return true;
+        };
+        return false;
     }
     
 }//class ends here

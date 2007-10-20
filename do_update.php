@@ -56,7 +56,10 @@
 	unset($zipdata);
 
 	//Extract plgin files to the 'plugins' folder
-	$ws_pup->extractPlugin($zipfile) or die("Error : couldn't unzip the new version of the plugin.");
+	$ws_pup->extractPlugin($zipfile) 
+		or die("Error : couldn't unzip the new version of the plugin.<br/>".
+		"Tried to extract $zipfile to ".ABSPATH."wp-content/plugins/<br/>".
+		"The most likely cause is that the plugin can't write to that directory.");
 	
 	//Delete the temporary file
 	unlink($zipfile);
