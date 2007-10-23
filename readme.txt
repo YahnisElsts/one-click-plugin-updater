@@ -3,7 +3,7 @@ Contributors: whiteshadow
 Tags: plugins, maintenance, update, upgrade, update notification, automation
 Requires at least: 2.3
 Tested up to: 2.3
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 
 Adds an "update automatically" link to plugin update notifications and lets you update plugins with a single click.
 
