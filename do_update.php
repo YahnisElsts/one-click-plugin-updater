@@ -8,6 +8,19 @@
 			die('Oops, sorry, you are not authorized to fiddle with plugins!');
 	}
 	
+	//check if it's possible to write to plugins directory
+	$plugin_dir=ABSPATH.'wp-content/plugins/';
+	if (!$ws_pup->is__writable($plugin_dir)){
+		?>
+		<b>Error : the directory <?php echo $plugin_dir; ?> is not writable by Wordpress.</b><br/>
+		You may need to assign permissions 666, 755 or even 777 to your "plugins" directory
+		(depending on your server configuration). For more information on what file permissions are and
+		how to change them read 
+		<a href='http://www.interspire.com/content/articles/12/1/FTP-and-Understanding-File-Permissions'>Understanding file permisssions</a>.
+		<?php
+		die();
+	}
+	
 	if (!class_exists('PclZip'))
 	{
 	        require_once ('pclzip.lib.php');
@@ -54,12 +67,11 @@
 	fwrite($handle, $zipdata);
 	fclose($handle);
 	unset($zipdata);
-
+	
 	//Extract plgin files to the 'plugins' folder
 	$ws_pup->extractPlugin($zipfile) 
-		or die("Error : couldn't unzip the new version of the plugin.<br/>".
-		"Tried to extract $zipfile to ".ABSPATH."wp-content/plugins/<br/>".
-		"The most likely cause is that the plugin can't write to that directory.");
+		or die("Error : couldn't unzip the new version of the plugin.<br/>
+		Your server may not have ziplib installed <b>and</b> the unzip command doesn't work either.");
 	
 	//Delete the temporary file
 	unlink($zipfile);
