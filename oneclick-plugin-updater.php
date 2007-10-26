@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications.
-Version: 1.0.3
+Version: 1.0.4
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.0';
+	var $version='1.0.3';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -131,10 +131,10 @@ class ws_oneclick_pup {
 	
 	    if ($path{strlen($path) - 1} == '/') // recursively return a temporary file path
 	
-	        return is__writable($path . uniqid(mt_rand()) . '.tmp');
+	        return $this->is__writable($path . uniqid(mt_rand()) . '.tmp');
 	    else
 	        if (is_dir($path))
-	            return is__writable($path . '/' . uniqid(mt_rand()) . '.tmp');
+	            return $this->is__writable($path . '/' . uniqid(mt_rand()) . '.tmp');
 	    // check tmp file for read/write capabilities
 	    $rm = file_exists($path);
 	    $f = @fopen($path, 'a');

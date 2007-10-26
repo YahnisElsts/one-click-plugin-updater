@@ -23,7 +23,7 @@
 	
 	if (!class_exists('PclZip'))
 	{
-	        require_once ('pclzip.lib.php');
+	    require_once ('pclzip.lib.php');
 	}
 	//error_reporting(E_ALL ^ E_NOTICE);
 	
@@ -40,7 +40,7 @@
 	
 	//Download the page at Wordpress.org Extend
 	$plugin_page=$ws_pup->download_page($plugin_url);
-	if (!$plugin_page) die("Couldn't load $plugin_page !");
+	if (!$plugin_page) die("Couldn't load URL '$plugin_page' !");
 	
 	//Get the .zip download link from the page
 	if (!preg_match('/<a\s+href=[\'"](http:\/\/downloads\.wordpress\.org\/plugin\/[\w\-\.]+\.zip)[\'"][^><]?>/', $plugin_page, $matches)){
