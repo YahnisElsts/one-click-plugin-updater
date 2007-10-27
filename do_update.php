@@ -87,4 +87,5 @@
 	//Go back to the plugin tab or activation URL
 	//die("\nGo to $redirect");
 	header("Location: $redirect");
+	die();
 ?>
