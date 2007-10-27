@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications.
-Version: 1.0.4
+Version: 1.0.5
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.0.3';
+	var $version='1.0.5';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -38,7 +38,9 @@ class ws_oneclick_pup {
 	
 	function admin_head(){
 		if (preg_match('/\/plugins\.php/', $_SERVER['REQUEST_URI'])) {
-			?><style>.plugin-update { display: none; };</style><?php
+			echo "<link rel='stylesheet' href='";
+			echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
+			echo "' type='text/css' />";
 		};
 	}
 	
@@ -52,7 +54,7 @@ class ws_oneclick_pup {
 		$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
 		 '/do_update.php?plugin_url='.urlencode($r->url).'&plugin_file='.urlencode($file);
 	
-		echo "<tr><td colspan='5' class='plugin-update plugin-oneclick-update' style='display: table-cell;'>";
+		echo "<tr><td colspan='5' class='plugin-oneclick-update'>";
 		printf('There is a new version of %s available. <a href="%s">Download version %s here</a>'.
 			' or <a href="%s">update automatically</a>.', 
 			$plugin_data['Name'], $r->url, $r->new_version, $autoupdate_url);

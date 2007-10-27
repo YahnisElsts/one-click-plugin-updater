@@ -1,0 +1,21 @@
+.plugin-update { 
+	display: none; 
+}
+	
+.plugin-oneclick-update {
+	border-bottom: 1px solid #ccc;
+	border-top: 1px solid #ccc;
+	background: #fffeeb;
+	line-height: 29px;
+	font-size: 12px;
+	color: #555;
+	text-align: center;
+} 
+
+.plugin-oneclick-update a {
+	font-size: 1.1em;
+}
+
+.plugin-oneclick-update a:link {
+	color: #036;
+}
