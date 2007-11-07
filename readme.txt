@@ -3,13 +3,13 @@ Contributors: whiteshadow
 Tags: plugins, maintenance, update, upgrade, update notification, automation
 Requires at least: 2.3
 Tested up to: 2.3.1
-Stable tag: 1.0.5
+Stable tag: 1.1
 
 Adds an "update automatically" link to plugin update notifications and lets you update plugins with a single click.
 
 == Description ==
 
-This plugin extends the plugin update notification feature introduced in WordPress 2.3 by adding an "update automatically" link to update notifications. When you click the link, the new version of the corresponding plugin is downloaded and installed automatically.
+This plugin extends the plugin update notification feature introduced in WordPress 2.3 by adding an "update automatically" link to update notifications. When you click the link, the new version of the corresponding plugin is downloaded and installed automatically. It also adds visual markers to the plugin list to show which plugins have update notifications enabled.
 
 **How It Works (In Detail)**
 

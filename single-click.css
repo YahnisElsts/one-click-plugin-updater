@@ -19,3 +19,12 @@
 .plugin-oneclick-update a:link {
 	color: #036;
 }
+
+.update-notification-enabled, 
+	.name.update-notification-enabled, 
+	.alternate .name.update-notification-enabled 
+{
+	background-image: url("update_enabled.gif");
+	background-position: top left;
+	background-repeat: repeat-y;
+}
