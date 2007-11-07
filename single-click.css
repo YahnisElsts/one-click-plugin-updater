@@ -37,3 +37,7 @@
 	background-position: top left;
 	background-repeat: repeat-y;
 }
+
+td.name {
+	padding-left: 8px;
+}
