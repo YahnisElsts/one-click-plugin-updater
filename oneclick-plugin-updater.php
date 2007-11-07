@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications and marks plugins that have notifications enabled. 
-Version: 1.1
+Version: 1.1.1
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -63,28 +63,26 @@ class ws_oneclick_pup {
 		?>
 
 <script type="text/javascript">
-	var update_enabled_plugins = Array(
+	var update_enabled_plugins = Array();
 <?php 
 if (isset($this->update_enabled->status) && (count($this->update_enabled->status)>0)) {
 	foreach($this->update_enabled->status as $file => $enabled) {
-		if($enabled)
-			echo "\t\t\"",$plugins[$file]['Name'],"\",\n";
+		echo "\t update_enabled_plugins[\"",$plugins[$file]['Name'],"\"] = ",
+			($enabled?'true':'false'),";\n";
 	}
 }
 ?>
-	"");
 
 	$j = jQuery.noConflict();
 	
 	$j(document).ready(function() {
-		for(i = 0; i < update_enabled_plugins.length - 1; i++) {
-			plugin = update_enabled_plugins[i];
-			$j("td.name:contains('"+plugin+"')").each(function (x) {
-		        if ($j(this).text() == plugin) {
-					$j(this).addClass('update-notification-enabled');
-		        };
-			});
-		}
+		$j("td.name").each(function (x) {
+			if (update_enabled_plugins[$j(this).text()]) {
+				$j(this).addClass('update-notification-enabled');
+			} else {
+				$j(this).addClass('update-notification-disabled');
+			};
+		});
 	});	
 </script>
 		<?php

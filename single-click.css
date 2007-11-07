@@ -28,3 +28,12 @@
 	background-position: top left;
 	background-repeat: repeat-y;
 }
+
+.update-notification-disabled, 
+	.name.update-notification-disabled, 
+	.alternate .name.update-notification-disabled 
+{
+	background-image: url("update_disabled.gif");
+	background-position: top left;
+	background-repeat: repeat-y;
+}
