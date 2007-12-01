@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications and marks plugins that have notifications enabled. 
-Version: 1.1.2
+Version: 1.1.3
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.1.1';
+	var $version='1.1.3';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -188,7 +188,10 @@ if (isset($this->update_enabled->status) && (count($this->update_enabled->status
 			curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)');
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
 		
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+			@curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+			/* Currently redirection support is not absolutely necessary, so it's OK
+			if this line fails due to safemode restrictions */
+			
 			curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
 			
 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);

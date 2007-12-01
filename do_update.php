@@ -40,11 +40,12 @@
 	
 	//Download the page at Wordpress.org Extend
 	$plugin_page=$ws_pup->download_page($plugin_url);
-	if (!$plugin_page) die("Couldn't load URL '$plugin_page' !");
+	if (!$plugin_page) die("Error: Couldn't load URL '$plugin_page' !<br/>".
+		"You need either the CURL library installed or allow_url_fopen set in php.ini for this to work.");
 	
 	//Get the .zip download link from the page
 	if (!preg_match('/<a\s+href=[\'"](http:\/\/downloads\.wordpress\.org\/plugin\/[\w\-\.]+\.zip)[\'"][^><]?>/', $plugin_page, $matches)){
-		die('Error : Download link not found.');
+		die("Error : Download link not found on $plugin_page.");
 	};
 	$download_url=$matches[1];
 	
@@ -59,7 +60,8 @@
 	
 	//Download the new version (a ZIP file)
 	$zipdata = $ws_pup->download_page($download_url, 600);
-	if(!$zipdata) die("Error : couldn't download the new version from '$download_url'!");
+	if(!$zipdata) die("Error : couldn't download the new version from '$download_url'!<br/>".
+		"You need either the CURL library installed or allow_url_fopen set in php.ini for this to work.");
 
 	//Save to a temporary location
 	$zipfile = tempnam("/tmp", "PLG");
@@ -68,13 +70,13 @@
 	fclose($handle);
 	unset($zipdata);
 	
-	//Extract plgin files to the 'plugins' folder
+	//Extract plugin files to the 'plugins' folder
 	$ws_pup->extractPlugin($zipfile) 
 		or die("Error : couldn't unzip the new version of the plugin.<br/>
 		Your server may not have ziplib installed <b>and</b> the unzip command doesn't work either.");
 	
 	//Delete the temporary file
-	unlink($zipfile);
+	@unlink($zipfile);
 		
 	//Get activation URL for the plugin if necessary
 	if ($was_active) {
