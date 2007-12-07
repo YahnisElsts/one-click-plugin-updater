@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications and marks plugins that have notifications enabled. 
-Version: 1.1.3
+Version: 1.1.5
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,10 +16,11 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.1.3';
+	var $version='1.1.5';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
+	var $debug=false;
 	
 	var $update_enabled='';
 
@@ -42,6 +43,10 @@ class ws_oneclick_pup {
 		
 		//debug
 		add_action('admin_footer', array(&$this,'admin_foot'));
+	}
+	
+	function dprint($str) {
+		if ($this->debug) echo $str.'<br/>';
 	}
 	
 	function admin_head(){
@@ -227,18 +232,49 @@ if (isset($this->update_enabled->status) && (count($this->update_enabled->status
 	}
 	
 	function extractPlugin($zipfile) {
+		$this->dprint("extractPlugin() method entered.");
+		
 		$target_dir=ABSPATH.'wp-content/plugins/';
+		$this->dprint("Extraction target directory : '$target_dir' (should be absolute path)");
+		
 	    $archive = new PclZip($zipfile);
 	    $rez = false;
 	    if (function_exists('gzopen')) {
-	        if ($archive->extract(PCLZIP_OPT_PATH, $target_dir, PCLZIP_OPT_REPLACE_NEWER) != 0) {
+		    $this->dprint("gzopen() found, will use PclZip.");
+	        if ($extracted_files = $archive->extract(PCLZIP_OPT_PATH, $target_dir, 
+	        					PCLZIP_OPT_REPLACE_NEWER, PCLZIP_OPT_STOP_ON_ERROR)) 
+	        {
+		        
+		        $this->dprint("PclZip reports success - plugin should have been extracted.");
+		        $this->dprint("PclZIp extraction log : <pre>");
+		        if ($this->debug) {
+			        print_r($extracted_files);
+		        };
+		        $this->dprint("</pre>");
+		        
 		        $rez=true;
+	        } else {
+		        $this->dprint("Error: PclZip reports failure. '".$archive->errorInfo(true)."'");
 	        };
         }
         if ((!$rez) && function_exists('exec')) {
+	        $this->dprint("gzopen() not found or PclZip error. Running unzip instead.");
 			exec("unzip -fod $target_dir $zipfile", $ignored, $return_val);
 			$rez = $return_val == 0;
+			$this->dprint("unzip returned value '$return_val'. unzip log : ");
+			if($this->debug) {
+				echo "<pre>";
+				print_r($ignored);
+				echo "</pre>";
+			};			
 	    }
+	    
+	    if (!$rez) {
+		    $this->dprint("extractPlugin() failed. No way to extract zip files.");
+	    } else {
+		    $this->dprint("extractPlugin() succeeded.");
+	    }
+	    
         return $rez;
     }
     
