@@ -84,8 +84,16 @@
 	//Save to a temporary location
 	$zipfile = tempnam("/tmp", "PLG");
 	$ws_pup->dprint("Will save the new version archive (zip) to a temporary file '$zipfile'.");
-	$handle = fopen($zipfile, "w");
-	if(!$handle) die("Error : couldn't create a temporary file.");
+	$handle = @fopen($zipfile, "w");
+	if(!$handle) {
+		$ws_pup->dprint("Warning: couldn't create a temporary file at '$zipfile'.");
+		//try to use the plugin's folder instead
+		$zipfile=tempnam(dirname(__FILE__), "PLG");
+		$ws_pup->dprint("Using alternate temporary file '$zipfile'.");
+		$handle = fopen($zipfile, "w");
+	}
+	if(!$handle) die("Error : couldn't create a temporary file '$zipfile'.");
+	
 	fwrite($handle, $zipdata);
 	fclose($handle);
 	unset($zipdata);

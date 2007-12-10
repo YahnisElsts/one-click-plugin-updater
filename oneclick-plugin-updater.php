@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications and marks plugins that have notifications enabled. 
-Version: 1.1.5
+Version: 1.1.6
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.1.5';
+	var $version='1.1.6';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
