@@ -52,13 +52,13 @@
 	$ws_pup->dprint("Accessing the above page to find new version's download URL.");
 	//Download the page at Wordpress.org Extend
 	$plugin_page=$ws_pup->download_page($plugin_url);
-	if (!$plugin_page) die("Error: Couldn't load URL '$plugin_page' !<br/>".
+	if (!$plugin_page) die("Error: Couldn't load URL '$plugin_url' !<br/>".
 		"You need either the CURL library installed or allow_url_fopen set in php.ini for this to work.");
 	$ws_pup->dprint("Page loaded, ".strlen($plugin_page)." bytes.");
 		
 	//Get the .zip download link from the page
-	if (!preg_match('/<a\s+href=[\'"](http:\/\/downloads\.wordpress\.org\/plugin\/[\w\-\.]+\.zip)[\'"][^><]?>/', $plugin_page, $matches)){
-		die("Error : Download link not found on $plugin_page.");
+	if (!preg_match('/<a\s+href=[\'"](http:\/\/[\w\.\-]*wordpress\.org[^><\'"]*\/[^><\'"]+\.zip)[\'"][^><]?>Download/i', $plugin_page, $matches)){
+		die("Error : Download link not found on $plugin_url.");
 	};
 	$download_url=$matches[1];
 	$ws_pup->dprint("Found plugin download URL : '$download_url'");

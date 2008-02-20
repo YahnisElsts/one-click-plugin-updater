@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Adds an "update automatically" link to plugin update notifications and marks plugins that have notifications enabled. 
-Version: 1.1.6
+Version: 1.1.7
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.1.6';
+	var $version='1.1.7';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -259,7 +259,7 @@ if (isset($this->update_enabled->status) && (count($this->update_enabled->status
         }
         if ((!$rez) && function_exists('exec')) {
 	        $this->dprint("gzopen() not found or PclZip error. Running unzip instead.");
-			exec("unzip -fod $target_dir $zipfile", $ignored, $return_val);
+			exec("unzip -uovd $target_dir $zipfile", $ignored, $return_val);
 			$rez = $return_val == 0;
 			$this->dprint("unzip returned value '$return_val'. unzip log : ");
 			if($this->debug) {
