@@ -2,8 +2,8 @@
 /*
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
-Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 1.9
+Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
+Version: 2.0
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='1.9';
+	var $version='2.0';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';

@@ -3,13 +3,13 @@ Contributors: whiteshadow
 Tags: plugins, maintenance, update, upgrade, update notification, automation
 Requires at least: 2.3
 Tested up to: 2.5
-Stable tag: 1.1.7
+Stable tag: 2.0
 
 Provides single-click plugin upgrades in WP 2.3 and up, visually marks plugins that have update notifications enabled, allows to easily install new plugins and themes, lets you control if and when WordPress checks for updates... and so on.
 
 == Description ==
 
-Having grown to far exceed it's original aim - to provide easy plugin updates in WordPress - this plugin now deals with various aspects of plugin (and theme) installation and updating. Note that version 1.9 comes with a lot of new features, and, probably, new bugs. The previous version (see the "Other Versions" link to the right) is quite stable though.
+Having grown to far exceed it's original aim - to provide easy plugin updates in WordPress - this plugin now deals with various aspects of plugin (and theme) installation and updating. Note that version 2.0 comes with a lot of new features, and, probably, new bugs. The previous version (see the "Other Versions" link to the right) is quite stable though.
 
 **Feature Overview**
 
