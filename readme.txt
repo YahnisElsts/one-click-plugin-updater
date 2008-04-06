@@ -28,7 +28,7 @@ Currently this plugin only uses direct file access to update and install plugins
 
 If something doesn't work, you can enable "Debug mode" in *Plugins -> Upgrade Settings*. This will make the plugin display a detailed execution log when it tries to update or install another plugin.
 
-A note for plugin developers - when performing an upgrade, this plugin will first deactivate the target plugin and the *deactivate* hook, if any. Then it will download the new version. If everything goes well, the new version will be then activated (*activate* hook will be called, if any). This is different from how the built-in updater works - it doesn't call the deactivation hook.
+A note for plugin developers - when performing an upgrade, this plugin will first deactivate the target plugin and call the *deactivate* hook, if any. Then it will download the new version. If everything goes well, the new version will be then activated (*activate* hook will be called, if any). This is different from how the built-in updater works - it doesn't call the deactivation hook.
 
 More info - [One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/ "One Click Plugin Updater Homepage")
 
