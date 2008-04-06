@@ -571,7 +571,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
     	
     	if (!class_exists('PclZip'))
 		{
-			$ws_pup->dprint('Need to load PclZip.');
+			$this->dprint('Need to load PclZip.');
 	    	require_once ('pclzip.lib.php');
 		}
 		
