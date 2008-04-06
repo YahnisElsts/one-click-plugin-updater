@@ -1,6 +1,6 @@
 === One Click Plugin Updater ===
 Contributors: whiteshadow
-Tags: plugins, maintenance, update, upgrade, update notification, automation
+Tags: plugin, notification, upload, files, installation, admin, update, upgrade, update notification, automation
 Requires at least: 2.3
 Tested up to: 2.5
 Stable tag: 2.0
@@ -20,6 +20,7 @@ Having grown to far exceed it's original aim - to provide easy plugin updates in
 * Configure how often WordPress checks for plugin and core updates, which module is used to upgrade plugins (this plugin or the built-in updater), and other options. See *Plugins -> Upgrade Settings*.
 * Easily install new plugins and themes (be sure to read the notes below). The plugin adds two new menus for this - *Plugins -> Install a Plugin* and *Design -> Install a Theme*.
 * Compatible with the [OneClick Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/5503).
+* Now with extra safety - uses the WordPress nonce mechanism for almost all tasks.
 
 **Important Notes**
 
