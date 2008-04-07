@@ -159,6 +159,7 @@
 				$redirect = get_option('siteurl')."/wp-admin/" 
 					.wp_nonce_url("plugins.php?action=activate&plugin=$plugin_file", 
 					'activate-plugin_' . $plugin_file);
+				$redirect = str_replace( '&#038;', '&', $redirect );
 			} else {
 				//Or handle multiple plugins - more complex.
 				update_option('plugins_to_reactivate', $to_activate);
