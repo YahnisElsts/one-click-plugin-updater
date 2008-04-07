@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.1
+Version: 2.0.2
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -16,7 +16,7 @@ It's GPL.
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.1';
+	var $version='2.0.2';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -65,7 +65,7 @@ class ws_oneclick_pup {
 		add_action('admin_print_scripts', array(&$this,'admin_scripts'));
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
-		add_action('admin_init', array(&$this, 'admin_init'));
+		//add_action('admin_init', array(&$this, 'admin_init'));
 		
 		//This is used both for marking plugins with enabled notifications
 		//and checking at different time intervals.	
@@ -117,6 +117,7 @@ class ws_oneclick_pup {
 	
 	function admin_init(){
 		//Hackety-hack! Unfortunately I can't do this earlier (AFAIK).
+		//Unfortunately, the admin_init hook only exists in WP 2.5
 		
 		if ($this->options['enable_plugin_checks']){
 			if ($this->options['updater_module']=='updater_plugin'){
@@ -156,6 +157,8 @@ class ws_oneclick_pup {
 		if ( (stristr($_SERVER['REQUEST_URI'], 'plugins.php'===false)) &&
 			 (stristr($_SERVER['REQUEST_URI'], 'themes.php'===false)) )
 			return;
+		
+		$this->admin_init();
 		
 		echo "<link rel='stylesheet' href='";
 		echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
@@ -239,9 +242,11 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 	
 	function plugin_update_row( $file ) {
 		global $plugin_data;
+		
 		$current = get_option( 'update_plugins' );
-		if ( !isset( $current->response[ $file ] ) )
+		if ( !isset( $current->response[ $file ] ) ){
 			return false;
+		}
 	
 		$r = $current->response[ $file ];
 		$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
@@ -633,18 +638,20 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 					}
 				}
 				
-				$this->dprint("Starting extraction.", 1);
 				//Finally, extract the files! Code shamelessly stolen from WP core (file.php).
 				$to = trailingslashit($target);
+				$this->dprint("Starting extraction to folder '$to'.", 1);
 				$path = explode('/', $to);
 				$tmppath = '';
 				for ( $j = 0; $j < count($path) - 1; $j++ ) {
 					$tmppath .= $path[$j] . '/';
-					if ( ! is_dir($tmppath) )
+					if ( ! is_dir($tmppath) ){
+						$this->dprint("Creating directory '$tmppath'", 1);
 						if ( ! mkdir($tmppath, 0755)) {
-							$this->dprint("Can't create directory $tmppath!", 3);
-							return new WP_Error('fs_mkdir', "Can't create directory $tmppath.");
+							$this->dprint("Can't create directory '$tmppath!'", 3);
+							return new WP_Error('fs_mkdir', "Can't create directory '$tmppath'.");
 						};
+					}
 				}
 					
 				foreach ($archive_files as $file) {
@@ -653,12 +660,15 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			
 					// Loop through each of the items and check that the folder exists.
 					for ( $j = 0; $j < count($path) - 1; $j++ ) {
+						if ($path[$j]=='') continue;
 						$tmppath .= $path[$j] . '/';
-						if ( ! is_dir($to . $tmppath) )
+						if ( ! is_dir($to . $tmppath) ){
+							$this->dprint("Creating directory '{$to}{$tmppath}'", 1);
 							if ( !mkdir($to . $tmppath, 0755) ){
-								$this->dprint("Can't create directory $tmppath in $to!", 3);
+								$this->dprint("Can't create directory '$tmppath' in '$to'!", 3);
 								return new WP_Error('fs_mkdir', "Can't create directory '$tmppath' in '$to'.");
 							}
+						}
 					}
 			
 					// We've made sure the folders are there, so let's extract the file now:
@@ -924,6 +934,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 	}
 	
 	function do_install($url='', $filename='', $type='autodetect'){
+		@set_time_limit(0);
 		/**
 		 * Download the file (if neccessary).
 		 */
