@@ -935,6 +935,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 	
 	function do_install($url='', $filename='', $type='autodetect'){
 		@set_time_limit(0);
+		@ignore_user_abort(true);
 		/**
 		 * Download the file (if neccessary).
 		 */
