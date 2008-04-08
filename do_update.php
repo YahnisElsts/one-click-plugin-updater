@@ -25,6 +25,15 @@
 			wp_redirect(get_option('siteurl').'/wp-admin/plugins.php?activate=true');
 			die();
 		}
+		if (count($to_activate)==1){
+			$redirect = get_option('siteurl')."/wp-admin/" 
+					.wp_nonce_url("plugins.php?action=activate&plugin=$plugin_file", 
+					'activate-plugin_' . $to_activate[0]);
+			//stupid wp_nonce_ulr, escaping ampersands!
+			$redirect = html_entity_decode($redirect);
+			header("Location: $redirect");
+			die();
+		}
 		
 		//Redirect to this URL if a plugin crashes on activation
 		$continue_url = get_option('siteurl').'/wp-content/plugins/'.$ws_pup->myfolder.
@@ -117,14 +126,12 @@
 			$ws_pup->dprint("The plugin that needs to be upgraded is not active. Good.");
 			$was_active = false;
 		}
-		
 		//Download and install
 		$plugin_info = $ws_pup->do_install($download_url,'', 'plugin');
 		if (is_wp_error($plugin_info)){
 			$errors[$plugin_file] = $plugin_info;
 		} else {
 			if (!empty($plugin_info['plugin_file'])) $plugin_file = $plugin_info['plugin_file'];  
-			
 			//Store the plugin for activation
 			if ($was_active) {
 				$ws_pup->dprint("Upgraded plugin was active. It will be reactivated.",1);
@@ -160,7 +167,7 @@
 					.wp_nonce_url("plugins.php?action=activate&plugin=$plugin_file", 
 					'activate-plugin_' . $plugin_file);
 				//stupid wp_nonce_ulr, escaping ampersands!
-				$redirect = str_replace( '&#038;', '&', $redirect );
+				$redirect = html_entity_decode($redirect);
 			} else {
 				//Or handle multiple plugins - more complex.
 				update_option('plugins_to_reactivate', $to_activate);
@@ -179,6 +186,4 @@
 			$ws_pup->dprint("(Debug version = redirection will not happen. Script execution finished.)");
 		};
 	}
-	
-	die();
 ?>

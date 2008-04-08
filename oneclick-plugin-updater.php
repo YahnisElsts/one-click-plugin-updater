@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.3
+Version: 2.0.4
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.3';
+	var $version='2.0.4';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -62,6 +62,7 @@ class ws_oneclick_pup {
 			'anonymize' => false,
 			'plugin_check_interval' => 43201,
 			'wordpress_check_interval' => 43200,
+			'global_notices' => false,
 			'debug' => false,
 		);
 		$this->options = get_option($this->options_name);
@@ -96,6 +97,12 @@ class ws_oneclick_pup {
 		){
 			remove_action('init', 'wp_version_check');
 			add_action('init', array(&$this,'check_wordpress_version'));
+		}
+		
+		//The global update notices (WP 2.5 only)
+		if ( file_exists( ABSPATH . 'wp-admin/update.php' ) ) {
+			if ($this->options['global_notices'])
+				add_action( 'admin_notices', array(&$this, 'global_plugin_notices') );
 		}
 	}
 	
@@ -545,7 +552,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 	 */
     function extractFile($zipfile, $type='autodetect', $target = '', $use_pclzip=true){
     	$this->dprint("Extracting files from $zipfile...");
-    	
+
     	$magic_descriptor = array('type' => $type);
     	
     	//Do some early autodetection
@@ -560,7 +567,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 				} 
 			}
 		}
-		
+
 		$this->dprint("So far, the type is set to '$type'.");
 		
 		if (!$use_pclzip){
@@ -587,17 +594,16 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		    }
 		    return new WP_Error('zip_noexec', "Can't run <em>unzip</em>.");
 		}
-		
     	
     	if (!class_exists('PclZip'))
 		{
 			$this->dprint('Need to load PclZip.');
 	    	require_once ('pclzip.lib.php');
 		}
-		
 	    $archive = new PclZip($zipfile);
-	    
+
 	    if (function_exists('gzopen')) {
+
 		    $this->dprint("gzopen() found, will use PclZip.");
 		    
 			//Try to extract all of the files in-memory. Warning : may overrun memory limits!!
@@ -608,7 +614,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			} else {
 				//It worked! Woo-hoo!
 				$magic_descriptor['file_list'] = $archive_files;
-				
 				//Let's see, where do we put the files?
 				if(empty($target)){
 					//Need to autodetect! Look at some PHP & CSS files for headers.
@@ -652,7 +657,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 						return new WP_Error("ad_failed", "Autodetection failed - this doesn't look like a plugin or a theme.");
 					}
 				}
-				
 				//Finally, extract the files! Code shamelessly stolen from WP core (file.php).
 				$to = trailingslashit($target);
 				$this->dprint("Starting extraction to folder '$to'.", 1);
@@ -660,7 +664,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 				$tmppath = '';
 				for ( $j = 0; $j < count($path) - 1; $j++ ) {
 					$tmppath .= $path[$j] . '/';
-					if ( ! is_dir($tmppath) ){
+					if ( ! is_dir($tmppath) && ($tmppath != '/')){
 						$this->dprint("Creating directory '$tmppath'", 1);
 						if ( ! mkdir($tmppath, 0755)) {
 							$this->dprint("Can't create directory '$tmppath!'", 3);
@@ -668,11 +672,10 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 						};
 					}
 				}
-					
+
 				foreach ($archive_files as $file) {
 					$path = explode('/', $file['filename']);
 					$tmppath = '';
-			
 					// Loop through each of the items and check that the folder exists.
 					for ( $j = 0; $j < count($path) - 1; $j++ ) {
 						if ($path[$j]=='') continue;
@@ -685,7 +688,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 							}
 						}
 					}
-			
 					// We've made sure the folders are there, so let's extract the file now:
 					if ( ! $file['folder'] ){
 						$this->dprint("Extracting $file[filename]", 1);
@@ -717,14 +719,25 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 						}
 						
 						//Put the file where it belongs
-						if ( !file_put_contents( $to . $file['filename'], $file_data['content']) ){
-							$this->dprint("Can't create file $file[filename] in $to!", 3);
-							return new WP_Error('fs_put_contents', "Can't create file '$file[filename]' in '$to'");
+						if ( isset($file_data['content']) && (strlen($file_data['content'])>0) ) {
+							//$this->dprint("File $file[filename] = ".strlen($file_data['content']).' bytes', 0);
+							if ( !file_put_contents( $to . $file['filename'], $file_data['content']) ){
+								$this->dprint("Can't create file $file[filename] in $to!", 3);
+								return new WP_Error('fs_put_contents', "Can't create file '$file[filename]' in '$to'");
+							}
+						} else {
+							//special handling for zero-byte files (file_put_contents woudln't work)
+							$fh = @fopen($to . $file['filename'], 'wb');
+							if(!$fh){
+								$this->dprint("Can't create a zero-byte file $file[filename] in $to!", 3);
+								return new WP_Error('fs_put_contents', 
+									"Can't create a zero-byte file '$file[filename]' in '$to'");
+							}
+							fclose($fh);
 						}
 						@chmod($to . $file['filename'], 0644); //I think this can be allowed to fail.
 					}
 				}
-				
 				//Extraction succeeded! Yay.
 				$this->dprint("Extraction succeeded.", 1);
 				return $magic_descriptor;
@@ -733,7 +746,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			$this->dprint("gzopen() not available, can't use PclZip.", 2);
 			return new WP_Error('zip_pclzip_unusable', "PclZip not supported - no gzopen().");
 		}
-
 		$this->dprint("extractFile() : you should never see this message.", 3);        
         return new WP_Error('impossible', "An impossible error!");
 	}
@@ -982,11 +994,9 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 				return new WP_Error('download_failed', "Download failed.");
 			}
 		}
-		
 		if(empty($filename)){
 			return new WP_Error('fs_no_file', "No file to extract. Weird.");
 		}
-		
 		/**
 		 * Extract the file
 		 */
@@ -1240,6 +1250,66 @@ ENCTYPE="multipart/form-data" method="post">
 </div>
 <?php
 
+	}
+	
+	/** 
+	 * Displays a message that plugin updates are available if they are
+	 *
+	 * @author	Viper007Bond
+	 * @authoruri http://www.viper007bond.com/
+	 */
+	function global_plugin_notices() {
+		$current = get_option( 'update_plugins' );
+
+		if ( empty( $current->response ) ) return; // No plugin updates available
+
+		// Since the message can get spammy, only display activated plugins
+		$active_plugins = get_option('active_plugins');
+		if ( empty($active_plugins) || !is_array($active_plugins) ) return;
+
+		$plugins = get_plugins();
+
+		$updatelist = array();
+
+		$first = true;
+
+		foreach ( $current->response as $plugin_file => $update_data ) {
+			// Make sure the plugin data is known and that it's activated
+			if ( empty( $plugins[$plugin_file] ) || !in_array( $plugin_file, $active_plugins ) ) continue;
+
+			// Make syre there is something to display
+			if ( empty($plugins[$plugin_file]['Name']) ) $plugins[$plugin_file]['Name'] = $plugin_file;
+			
+			$r = $update_data;
+			$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
+			 '/do_update.php?plugin_file='.urlencode($plugin_file);
+			if(!empty($r->package)){
+				$autoupdate_url .= '&download_url='.urlencode($r->package);
+			} else {
+				$autoupdate_url .='&plugin_url='.urlencode($r->url);
+			}
+			//Add nonce verification for security
+			$autoupdate_url = wp_nonce_url($autoupdate_url, 'update_plugin-'.$plugin_file);
+
+			echo '	<div class="plugin-update"';
+			if ( TRUE != $first ) echo ' style="border-top:none"';
+			echo '>';
+
+			if ( !current_user_can('edit_plugins') )
+				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a>.'), 
+					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version);
+			elseif ( empty($update_data->package) )
+				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a> <em>automatic upgrade unavailable for this plugin</em>.'), 
+					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version);
+			else
+				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a> or <a href="%4$s">upgrade automatically</a>.'), 
+					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version,
+						$autoupdate_url);
+
+			echo "</div>\n";
+
+			$first = FALSE;
+		}
 	}
     
 }//class ends here
