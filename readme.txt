@@ -1,26 +1,34 @@
 === One Click Plugin Updater ===
 Contributors: whiteshadow
-Tags: plugins, maintenance, update, upgrade, update notification, automation
+Tags: plugin, notification, upload, files, installation, admin, update, upgrade, update notification, automation
 Requires at least: 2.3
-Tested up to: 2.3.1
-Stable tag: 1.1.3
+Tested up to: 2.5
+Stable tag: 2.0.5
 
-Adds an "update automatically" link to plugin update notifications and lets you update plugins with a single click.
+Provides single-click plugin upgrades in WP 2.3 and up, visually marks plugins that have update notifications enabled, allows to easily install new plugins and themes, lets you control if and when WordPress checks for updates... and so on.
 
 == Description ==
 
-This plugin extends the plugin update notification feature introduced in WordPress 2.3 by adding an "update automatically" link to update notifications. When you click the link, the new version of the corresponding plugin is downloaded and installed automatically. It also adds visual markers to the plugin list to show which plugins have update notifications enabled.
+Having grown to far exceed it's original aim - to provide easy plugin updates in WordPress - this plugin now deals with various aspects of plugin (and theme) installation and updating. Note that version 2.0 comes with a lot of new features, and, probably, new bugs. The previous version (see the "Other Versions" link to the right) is quite stable though.
 
-**How It Works (In Detail)**
+**Feature Overview**
 
-To be able to display the new link this plugin will hide the original update notification and display a slightly modified one. Here's what happens when you click the "update automatically" link :
+* Single-click plugin upgrades in WP 2.3 and up. The techniques that this plugin uses are slightly different from the built-in plugin upgrade feature in WP 2.5, so it's possible that on some blogs the plugin updater works and the built-in updater doesn't (or *vice versa*).
+* Upgrade all plugins with a single click (only in WP 2.5).
+* Visually identify plugins that have update notifications enabled. They get a yellow-gold marker in the "Plugin Management" tab.
+* Quickly determine if there are any pending updates and how many plugins are active. This plugin displays that information right below the "Plugin Management" headline.
+* Configure how often WordPress checks for plugin and core updates, which module is used to upgrade plugins (this plugin or the built-in updater), and other options. See *Plugins -> Upgrade Settings*.
+* Easily install new plugins and themes (be sure to read the notes below). The plugin adds two new menus for this - *Plugins -> Install a Plugin* and *Design -> Install a Theme*.
+* Compatible with the [OneClick Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/5503).
+* Now with extra safety - uses the WordPress nonce mechanism for almost all tasks.
 
-1. If the plugin that needs to be updated is active, it is deactivated.
-1. The Plugin Updater retrieves the plugin's page from Wordpress.org and finds the download link.
-1. The new version is downloaded and extracted to the wp-content/plugins directory (this directory must be writable by the Updater plugin).
-1. If necessary, the updated plugin is re-activated.
+**Important Notes**
 
-All this happens in the background, so if everything works OK you'll end up back at the "Plugins" tab. If there are any errors the updater will display an error message and abort the upgrade.
+Currently this plugin only uses direct file access to update and install plugins/themes, so you'll need to make the "/wp-content/plugins/" and "/wp-content/themes/" folders writable by PHP for this to work. See [Changing File Permissions](http://codex.wordpress.org/Changing_File_Permissions) for a general guide on how to do this. Eventually the plugin should use the new filesystem access classes introduced in WP 2.5.
+
+If something doesn't work, you can enable "Debug mode" in *Plugins -> Upgrade Settings*. This will make the plugin display a detailed execution log when it tries to update or install another plugin.
+
+A note for plugin developers - when performing an upgrade, this plugin will first deactivate the target plugin and call the *deactivate* hook, if any. Then it will download the new version. If everything goes well, the new version will be then activated (*activate* hook will be called, if any). This is different from how the built-in updater works - it doesn't call the deactivation hook.
 
 More info - [One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/ "One Click Plugin Updater Homepage")
 
@@ -28,8 +36,8 @@ More info - [One Click Plugin Updater homepage](http://w-shadow.com/blog/2007/10
 
 **Additional Requirements**
 
-* The CURL library installed or "allow url fopen" enabled in php.ini
-* The *plugins* directory needs to be writable by the webserver. The exact permission requirements vary by server, though CHMOD 666 should be sufficient.
+* The CURL library installed or "allow url fopen" enabled in php.ini *or* WP 2.5 and up. 
+* The *plugins* directory needs to be writable by the webserver (if you plan to use the upgrade/installer features of this plugin). The exact permission requirements vary by server, though CHMOD 666 should be sufficient.
 
 To install the plugin follow these steps :
 
