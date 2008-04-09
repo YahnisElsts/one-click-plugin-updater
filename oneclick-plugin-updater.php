@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.4
+Version: 2.0.5
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.4';
+	var $version='2.0.5';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -660,6 +660,11 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 				//Finally, extract the files! Code shamelessly stolen from WP core (file.php).
 				$to = trailingslashit($target);
 				$this->dprint("Starting extraction to folder '$to'.", 1);
+				/**
+				 * I'm going to bloody well assume the target directory exists! This is a
+				 * workaround for a bug; it needs to be fixed sooner or later!
+				 */ 
+				/*
 				$path = explode('/', $to);
 				$tmppath = '';
 				for ( $j = 0; $j < count($path) - 1; $j++ ) {
@@ -672,6 +677,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 						};
 					}
 				}
+				*/
 
 				foreach ($archive_files as $file) {
 					$path = explode('/', $file['filename']);
