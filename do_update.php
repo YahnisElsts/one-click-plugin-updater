@@ -117,6 +117,7 @@
 	foreach($upgrades as $plugin_file => $download_url){
 		$ws_pup->dprint("Upgrading '$plugin_file', download URL is '$download_url'.",1);
 		
+		$was_active = false;
 		//Deactivate the plugin (if active)
 		if (in_array($plugin_file, get_option('active_plugins'))){
 			$ws_pup->dprint("The plugin that needs to be upgraded is active. Deactivating.",1);
@@ -163,6 +164,7 @@
 			//Move on to reactivation
 			if (count($to_activate)==1){
 				//We can reactivate a single plugin right away.
+				$plugin_file = $to_activate[0];
 				$redirect = get_option('siteurl')."/wp-admin/" 
 					.wp_nonce_url("plugins.php?action=activate&plugin=$plugin_file", 
 					'activate-plugin_' . $plugin_file);

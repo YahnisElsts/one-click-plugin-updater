@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.5
+Version: 2.0.6
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.5';
+	var $version='2.0.6';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -308,12 +308,25 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		$active  = get_option( 'active_plugins' );
 		
 		$plugin_changed = false;
+		$core_override = false; 
+		/* Whether to set the update_plugins option. There's additional checking and 
+		   processing at the end of this function.	*/
+		
 		foreach ( $plugins as $file => $p ) {
 			$plugins[$file]['Version']='0.0'; //fake zero version 
 			if( !isset($this->update_enabled->status[$file]) ) {
 				$this->update_enabled->status[$file]=false; //not known yet, assume false
 				$plugin_changed = true;
 				continue;
+			}
+		}
+		//Remove information about deleted plugins
+		$remaining = $this->update_enabled->status;
+		foreach($remaining as $file => $status){
+			if (!isset($plugins[$file])){
+				unset($this->update_enabled->status[$file]);
+				$plugin_changed = true;
+				$core_override = true;
 			}
 		}
 		
@@ -367,7 +380,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		update_option( 'update_enabled_plugins', $this->update_enabled);
 		
 		/** Save the info for WP as well, if I'm supposed to **/
-		if( ($this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200))
+		if( ($this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) || $core_override)
 			&& ($this->options['enable_plugin_checks'])
 		 ){
 			$new_option = '';
