@@ -102,7 +102,7 @@
 	 */
 	if (!wp_verify_nonce($nonce, $nonce_action)){
 		$ws_pup->dprint("Nonce verification failed.", 3);
-		wp_die("I can't upgrade the plugin(s) because the link you used request doesn't appear to be legitimate.", 
+		wp_die("I can't upgrade the plugin(s) because the link you used doesn't appear to be legitimate.", 
 			"Nonce verification failed");
 	} else {
 		$ws_pup->dprint("Nonce verification passed.", 0);
