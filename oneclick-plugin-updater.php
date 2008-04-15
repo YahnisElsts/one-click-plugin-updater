@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.6
+Version: 2.0.7
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.6';
+	var $version='2.0.7';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -1159,7 +1159,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 							//No special processing
 						}
 						echo "<p><a href='";
-						echo trailingslashit(get_bloginfo('url'));
+						echo trailingslashit(get_option('siteurl'));
 						echo "wp-admin/{$what}s.php'>View all installed {$what}s</a></p>";
 						
 					} else {
