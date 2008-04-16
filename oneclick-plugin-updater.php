@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.7
+Version: 2.0.8
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.7';
+	var $version='2.0.8';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -447,7 +447,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		update_option( 'update_core', $new_option );
 	}
 	
-	function download_page($url, $timeout=40){
+	function download_page($url, $timeout=120){
 		$this->dprint("Downloading '$url'...", 1);
 		
 		$parts=parse_url($url);
@@ -619,11 +619,13 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 
 		    $this->dprint("gzopen() found, will use PclZip.");
 		    
-			//Try to extract all of the files in-memory. Warning : may overrun memory limits!!
+			// Try to extract all of the file information in-memory. Note : hopefully unlikely to 
+			// overrun memory limits.
 			if ( false == ($archive_files = $archive->listContent()) ){
 				// Nope.
 				$this->dprint("PclZip failed!", 3);
-				return new WP_Error('zip_unsupported', "The archive format is not supported.");
+				$error_msg = "PclZip Error : '".$archive->errorInfo(true)."'";
+				return new WP_Error('zip_unsupported', $error_msg);
 			} else {
 				//It worked! Woo-hoo!
 				$magic_descriptor['file_list'] = $archive_files;
@@ -987,7 +989,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 		 */
 		if (empty($filename) && !empty($url)){
 			//URL is okay, lets try downloading
-			$contents = $this->download_page($url, 120);
+			$contents = $this->download_page($url, 300);
 			if ($contents){
 				$this->dprint("Downloaded ".strlen($contents)." bytes.", 1);
 				$filename = tempnam("/tmp", "PLG");
