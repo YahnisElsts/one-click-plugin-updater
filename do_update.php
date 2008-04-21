@@ -16,7 +16,7 @@
 	$action=empty($_GET['action'])?'update_plugin':$_GET['action'];
 	
 	/**
-	 * Handle reactivation
+	 * Handle reactivation (doesn't require nonce verification)
 	 */
 	if ($action == 'reactivate_all'){
 		$to_activate = get_option('plugins_to_reactivate');
@@ -92,9 +92,11 @@
 		}
 		
 		$nonce_action = $action;
-	} else {
+	} else if ($action == 'update_plugin'){
 		$upgrades[$plugin_file] = $download_url;
 		$nonce_action = 'update_plugin-'.$plugin_file;
+	} else {
+		$nonce_action = $action;
 	}
 	
 	/**
@@ -107,6 +109,42 @@
 	} else {
 		$ws_pup->dprint("Nonce verification passed.", 0);
 	}
+	
+	/**
+	 * Handle delete requests
+	 */
+	if ('delete_plugin' == $action){
+		$ws_pup->dprint("About to delete the plugin '$plugin_file'", 1);
+		if (empty($plugin_file)){
+			wp_die("Invalid request - no plugin specified.");
+		}
+		$parts = preg_split('/[\\/]/', $plugin_file);
+		$parts = array_filter($parts);
+		if (count($parts)>1){
+			//the plugin is in a subfolder, so kill the folder
+			$directory = trailingslashit(ABSPATH) . "wp-content/plugins/" . $parts[0];
+			$ws_pup->dprint("Deleting directory '$directory'...",1);
+			if (!$ws_pup->deltree($directory)){
+				wp_die("Can't delete the directory <strong>$parts[0]</strong><br/>Log :<br/>".
+					$ws_pup->format_debug_log(), "File Access Error");
+			}
+		} else {
+			//it seems to be a single file inside wp-content/plugins
+			$ws_pup->dprint("Deleting file $plugin_file",1);
+			if (!unlink(trailingslashit(ABSPATH) . "wp-content/plugins/$plugin_file")){
+				//error!
+				$ws_pup->dprint("Failed.", 3);
+				wp_die("Can't delete <strong>$plugin_file</strong><br/>Log : <br/>".
+					$ws_pup->format_debug_log(), "File Access Error");
+			};
+			$ws_pup->dprint("File removed OK.",1);
+		}
+		if (!$ws_pup->debug){
+			wp_redirect(get_option('siteurl').'/wp-admin/plugins.php');
+		}
+		die();
+	}
+	
 	$ws_pup->dprint("About to upgrade ".count($upgrades)." plugins.",1);
 	
 	$errors = array();

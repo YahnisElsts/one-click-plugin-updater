@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.0.9
+Version: 2.1
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.0.8';
+	var $version='2.1';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -62,7 +62,8 @@ class ws_oneclick_pup {
 			'anonymize' => false,
 			'plugin_check_interval' => 43201,
 			'wordpress_check_interval' => 43200,
-			'global_notices' => false,
+			'global_notices' => true,
+			'new_file_permissions' => 0755, 
 			'debug' => false,
 		);
 		$this->options = get_option($this->options_name);
@@ -81,7 +82,6 @@ class ws_oneclick_pup {
 		add_action('admin_print_scripts', array(&$this,'admin_scripts'));
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
-		//add_action('admin_init', array(&$this, 'admin_init'));
 		
 		//This is used both for marking plugins with enabled notifications
 		//and checking at different time intervals.	
@@ -99,10 +99,14 @@ class ws_oneclick_pup {
 			add_action('init', array(&$this,'check_wordpress_version'));
 		}
 		
-		//The global update notices (WP 2.5 only)
+		//Hooks that work in WP 2.5 only
 		if ( file_exists( ABSPATH . 'wp-admin/update.php' ) ) {
+			add_action('admin_init', array(&$this, 'admin_init'));
 			if ($this->options['global_notices'])
 				add_action( 'admin_notices', array(&$this, 'global_plugin_notices') );
+		} else {
+			//better than nothing
+			add_action('admin_head', array(&$this, 'admin_init'));
 		}
 	}
 	
@@ -180,8 +184,6 @@ class ws_oneclick_pup {
 			 (stristr($_SERVER['REQUEST_URI'], 'themes.php'===false)) )
 			return;
 		
-		$this->admin_init();
-		
 		echo "<link rel='stylesheet' href='";
 		echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
 		echo "' type='text/css' />";
@@ -206,6 +208,8 @@ class ws_oneclick_pup {
 			 (!empty($_GET['page']))
 		) return;
 		
+		$do_update_url = get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/do_update.php';
+		
 		$plugins=get_plugins();
 		$update = get_option('update_plugins');
 		$active  = get_option('active_plugins' );
@@ -220,12 +224,15 @@ class ws_oneclick_pup {
 			$plugin_msg .= ", <strong>$count_update upgrade$s available</strong>";
 		
 			if (function_exists('activate_plugin')){
-				$link =  get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
-					'/do_update.php?action=upgrade_all';
+				$link =  $do_update_url.'?action=upgrade_all';
 				$link = wp_nonce_url($link, 'upgrade_all');
 				$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
 			}
 		}
+		
+		//A partially verifiable link to delete a plugin
+		$delete_link = $do_update_url.'?action=delete_plugin';
+		$delete_link = wp_nonce_url($delete_link, 'delete_plugin');
 
 		?>
 
@@ -256,7 +263,28 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		
 		//Add a status msg. 
 		$j("div.wrap h2:first").after("<p class='plugins-overview'>"+plugin_msg+"</p>");
+		
+		//Add the "Delete" links to inactive plugins
+		$j("tr:not(.active) td.action-links").each(function (x) {
+			//construct the specific URL
+			url = '<?php echo $delete_link; ?>';
+			edit_url = $j(this).find("a:contains('Edit'):first").attr('href');
+			re = /\?file=(.+?)($|&)/i
+			matches = re.exec(edit_url);
+			if (!matches) return true;
+			url = url + '&plugin_file=' + matches[1];
+			//add the "Delete" link			
+			$j(this).prepend('<a href="javascript:verifyPluginDelete(\''+ url +'\')">Delete</a> | ');
+		});
+		
 	});	
+	
+	function verifyPluginDelete(url){
+		if (confirm("Do you really want to delete this plugin?\r\nDo this at your own risk!")){
+			document.location = url;
+		}
+		return void(0);
+	}
 </script>
 		<?php
 		
@@ -272,7 +300,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 	
 		$r = $current->response[ $file ];
 		$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
-		 '/do_update.php?plugin_file='.urlencode($file);
+		 '/do_update.php?action=update_plugin&plugin_file='.urlencode($file);
 		if(!empty($r->package)){
 			$autoupdate_url .= '&download_url='.urlencode($r->package);
 		} else {
@@ -325,7 +353,8 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		foreach($remaining as $file => $status){
 			if (!isset($plugins[$file])){
 				unset($this->update_enabled->status[$file]);
-				$plugin_changed = true;
+				/* Maybe comment this out not to waste time checking for updates every time a plugin is deleted. */
+				$plugin_changed = true; 
 				$core_override = true;
 			}
 		}
@@ -390,6 +419,8 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			
 			update_option( 'update_plugins', $new_option );						
 		}
+		
+		return true;
 	}
 	
 	/**
@@ -508,53 +539,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		return true;
 	}
 	
-	function extractPlugin($zipfile) {
-		$this->dprint("extractPlugin() method entered.");
-		
-		$target_dir=ABSPATH.'wp-content/plugins/';
-		$this->dprint("Extraction target directory : '$target_dir' (should be absolute path)");
-		
-	    $archive = new PclZip($zipfile);
-	    $rez = false;
-	    if (function_exists('gzopen')) {
-		    $this->dprint("gzopen() found, will use PclZip.");
-	        if ($extracted_files = $archive->extract(PCLZIP_OPT_PATH, $target_dir, 
-	        					PCLZIP_OPT_REPLACE_NEWER, PCLZIP_OPT_STOP_ON_ERROR)) 
-	        {
-		        
-		        $this->dprint("PclZip reports success - plugin should have been extracted.");
-		        $this->dprint("PclZIp extraction log : <pre>");
-		        if ($this->debug) {
-			        print_r($extracted_files);
-		        };
-		        $this->dprint("</pre>");
-		        
-		        $rez=true;
-	        } else {
-		        $this->dprint("Error: PclZip reports failure. '".$archive->errorInfo(true)."'");
-	        };
-        }
-        if ((!$rez) && function_exists('exec')) {
-	        $this->dprint("gzopen() not found or PclZip error. Running unzip instead.");
-			exec("unzip -uovd $target_dir $zipfile", $ignored, $return_val);
-			$rez = $return_val == 0;
-			$this->dprint("unzip returned value '$return_val'. unzip log : ");
-			if($this->debug) {
-				echo "<pre>";
-				print_r($ignored);
-				echo "</pre>";
-			};			
-	    }
-	    
-	    if (!$rez) {
-		    $this->dprint("extractPlugin() failed. No way to extract zip files.");
-	    } else {
-		    $this->dprint("extractPlugin() succeeded.");
-	    }
-	    
-        return $rez;
-    }
-    
     /**
      * extractFile() - extract the plugin or theme to the right folder
      * 
@@ -756,7 +740,8 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 							}
 							fclose($fh);
 						}
-						@chmod($to . $file['filename'], 0644); //I think this can be allowed to fail.
+						@chmod($to . $file['filename'], $this->options['new_file_permissions']); 
+						//^ I think this can be allowed to fail.
 					}
 				}
 				//Extraction succeeded! Yay.
@@ -842,6 +827,10 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			$this->options['wordpress_check_interval'] = intval($_POST['wordpress_check_interval']);
 			$this->options['debug'] = !empty($_POST['debug']);
 			$this->debug = $this->options['debug'];
+			$this->options['global_notices'] = !empty($_POST['global_notices']);
+			if (!empty($_POST['new_file_permsissions']))
+				$this->options['new_file_permissions'] = octdec(intval($_POST['new_file_permissions']));
+			
 			update_option($this->options_name, $this->options);
 
 			echo '<div id="message" class="updated fade"><p><strong>Settings saved.</strong></p></div>';
@@ -934,6 +923,15 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 			echo $this->options['plugin_check_interval'];
 		?>"  /> seconds</td>
 	</tr>
+<?php if (function_exists('activate_plugin')) { ?>
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='global_notices' id='global_notices' <?php
+			if ($this->options['global_notices']) echo "checked='checked'";
+		?> />
+		Show global update notices</label></th>
+	</tr>
+<?php } ?>	
 </table>
 
 <h3>WordPress Updates</h3>
@@ -969,6 +967,18 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 			if ($this->debug) echo "checked='checked'";
 		?> />
 		Enable debug mode </label></th>
+	</tr>
+	
+	<tr>
+		<th align='left'>File Mode</th>
+		<td>
+			<input type='text' name='new_file_permissions' id='new_file_permissions' value='<?php
+			echo decoct($this->options['new_file_permissions']);
+			?>' maxlength='5' size='10' /><br />
+			The file permissions that should be assigned to files created by this plugin. 
+			Leave this option alone if you don't know what it means. The plugin will <em>try</em>
+			to set these permissions but it may not always succeed.
+		</td>
 	</tr>
 	
 </table>
@@ -1283,6 +1293,8 @@ ENCTYPE="multipart/form-data" method="post">
 		$current = get_option( 'update_plugins' );
 
 		if ( empty( $current->response ) ) return; // No plugin updates available
+		
+		if (!function_exists('activate_plugin')) return; //Only in WP 2.5
 
 		// Since the message can get spammy, only display activated plugins
 		$active_plugins = get_option('active_plugins');
@@ -1290,47 +1302,92 @@ ENCTYPE="multipart/form-data" method="post">
 
 		$plugins = get_plugins();
 
-		$updatelist = array();
-
-		$first = true;
-
+		$update_list = array();
+		
+		$header = false;
 		foreach ( $current->response as $plugin_file => $update_data ) {
 			// Make sure the plugin data is known and that it's activated
-			if ( empty( $plugins[$plugin_file] ) || !in_array( $plugin_file, $active_plugins ) ) continue;
+			if ( empty( $plugins[$plugin_file] ) /*|| !in_array( $plugin_file, $active_plugins )*/ ) continue;
 
-			// Make syre there is something to display
+			// Make sure there is something to display
 			if ( empty($plugins[$plugin_file]['Name']) ) $plugins[$plugin_file]['Name'] = $plugin_file;
 			
-			$r = $update_data;
-			$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
-			 '/do_update.php?plugin_file='.urlencode($plugin_file);
-			if(!empty($r->package)){
-				$autoupdate_url .= '&download_url='.urlencode($r->package);
-			} else {
-				$autoupdate_url .='&plugin_url='.urlencode($r->url);
-			}
-			//Add nonce verification for security
-			$autoupdate_url = wp_nonce_url($autoupdate_url, 'update_plugin-'.$plugin_file);
-
-			echo '	<div class="plugin-update"';
-			if ( TRUE != $first ) echo ' style="border-top:none"';
-			echo '>';
-
-			if ( !current_user_can('edit_plugins') )
-				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a>.'), 
-					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version);
-			elseif ( empty($update_data->package) )
-				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a> <em>automatic upgrade unavailable for this plugin</em>.'), 
-					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version);
-			else
-				printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a> or <a href="%4$s">upgrade automatically</a>.'), 
-					$plugins[$plugin_file]['Name'], $update_data->url, $update_data->new_version,
-						$autoupdate_url);
-
-			echo "</div>\n";
-
-			$first = FALSE;
+			$update_list[] = "<strong>".$plugins[$plugin_file]['Name']."</strong>";
 		}
+		
+		if (count($update_list)>0){
+			echo '	<div class="plugin-update">';
+			$link =  get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
+					'/do_update.php?action=upgrade_all';
+			$link = wp_nonce_url($link, 'upgrade_all');
+			$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
+			
+			if (count($update_list)==1){
+				$name = array_pop($update_list);
+				if ( !current_user_can('edit_plugins') )
+					printf( __('There is a new version of %1$s available.'), $name);
+				else
+					printf( __('There is a new version of %1$s available. 
+						<a href="%2$s" class="button">Upgrade Automatically</a>'), 
+						$name, $link);
+			} else{
+				//make a nice listing :)
+				$name = implode(', ', array_slice($update_list,0,count($update_list)-1));
+				$name .= ' and '.array_pop($update_list);
+				
+				if ( !current_user_can('edit_plugins') )
+					printf( __('There are new versions available for %1$s.'), $name);
+				else
+					printf( __('There are new versions available for %1$s. 
+						<a href="%2$s" class="button">Upgrade All</a>'), 
+						$name, $link);
+			}
+	
+			echo "</div>\n";
+		}
+	}
+	
+	/**
+	 * Recursively delete a directory and all files in it (ver 2)
+	 */
+	function deltree($directory){
+	    if (substr($directory, -1) == '/')
+	    {
+	        $directory = substr($directory, 0, -1);
+	    }
+	    if (!file_exists($directory) || !is_dir($directory))
+	    {
+	    	$this->dprint("'$directory' : Path doesn't exist or isn't a directory!", 3);
+	        return false;
+	    }  else  {
+	    	$this->dprint("Processing directory '$directory'...");
+	        $handle = opendir($directory);
+	        while (false !== ($item = readdir($handle)))
+	        {
+	            if ( ($item != '.') && ($item != '..'))
+	            {
+	                $path = $directory . '/' . $item;
+	                if (is_dir($path) && !is_link($path)) {
+	                    if (!$this->deltree($path)){
+							return false;
+						};
+	                } else {
+	                	$this->dprint("Deleting file $path",1);
+	                    if (!unlink($path)){
+							$this->dprint("Can't delete file '$path'",3);
+							return false;
+						};
+	                }
+	            }
+	        }
+	        closedir($handle);
+	        $this->dprint("Deleting directory $directory",1);
+            if (!rmdir($directory)) {
+            	$this->dprint("Can't delete directory '$directory'",3);
+	            return false;
+	        }
+	        return true;
+	    }
 	}
     
 }//class ends here
