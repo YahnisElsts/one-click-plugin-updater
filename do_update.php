@@ -176,8 +176,18 @@
 				$ws_pup->dprint("Upgraded plugin was active. It will be reactivated.",1);
 				$to_activate[] = $plugin_file;
 			}
+			//Remove it from the list of available upgrades (alternate : see delete_option() below)
+			/*
+			$upgrades = get_option( 'update_plugins' );
+			if ( isset( $upgrades->response[ $plugin_file ] ) ){
+				unset($upgrades->response[ $plugin_file ]);
+				update_option('update_plugins', $upgrades);
+			}
+			//*/
 		}
 	}
+	// Force refresh of plugin update information
+	delete_option('update_plugins');
 	
 	$ws_pup->dprint("Main loop finished.");
 	/**
