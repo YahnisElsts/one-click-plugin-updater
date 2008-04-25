@@ -336,7 +336,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		$active  = get_option( 'active_plugins' );
 		$current = get_option( 'update_plugins' );
 		
-		$plugin_changed = false;
+		$plugin_changed = empty($current);
 		$core_override = false; 
 		/* Whether to set the update_plugins option. There's additional checking and 
 		   processing at the end of this function.	*/
@@ -362,7 +362,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		
 		//$plugin_changed=true; //XXXXXX debug - force status update
 		if (
-			isset ( $current->last_checked ) &&
 			isset( $this->update_enabled->last_checked ) &&
 			( ( time() - $this->update_enabled->last_checked ) < $this->options['plugin_check_interval']) &&
 			!$plugin_changed
