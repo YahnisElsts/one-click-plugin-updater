@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.1.1
+Version: 2.1.2
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.1.1';
+	var $version='2.1.2';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -324,6 +324,36 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		echo "</td></tr>";
 	}
 	
+	/**
+	 * Decrease a version number by a small fraction
+	 */
+	function version_decrease($version){
+		//Spaces? Kill anything that comes after a space.
+		$parts = explode(' ', trim($version));
+		$ver = $parts[0];
+		$numeric = array();
+		//Separate by dots
+		$parts = explode('.', $ver);
+		//Perform the arithmetics
+		$new_parts = array();
+		$carry = 1;
+		while(count($parts)>0){
+			$minor = intval(array_pop($parts));
+			$minor = $minor - $carry;
+			if ($minor < 0){
+				$minor = 10 - $carry;
+				//$minor =  
+			} else {
+				$carry = 0;
+			}
+			array_unshift($new_parts, $minor);
+		}
+		
+		//Add the dots again
+		$new_ver = implode('.', $new_parts);
+		return $new_ver;	
+	}
+	
 	function check_update_notifications(){
 		global $wp_version;
 		@set_time_limit(300);
@@ -342,7 +372,9 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		   processing at the end of this function.	*/
 		
 		foreach ( $plugins as $file => $p ) {
-			$plugins[$file]['Version']='0.0'; //fake zero version 
+			$plugins[$file]['Version']='0'; //fake zero version 
+			//$plugins[$file]['Version'] = $this->version_decrease($plugins[$file]['Version']);
+			
 			if( !isset($this->update_enabled->status[$file]) ) {
 				$this->update_enabled->status[$file]=false; //not known yet, assume false
 				$plugin_changed = true;
@@ -396,12 +428,13 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		}
 	
 		$response = unserialize( $response[1] );
+		//print_r($response);
 	
 		if ( $response ) {
 			$cleaned_response = array();
 			foreach($response as $file => $data) {
 				$this->update_enabled->status[$file]=true;
-				if ($data->new_version > $orig_plugins[$file]['Version']){
+				if (version_compare($data->new_version, $orig_plugins[$file]['Version'])>0){
 					$cleaned_response[$file] = $data;
 				}
 			}
