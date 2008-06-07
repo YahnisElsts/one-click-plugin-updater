@@ -156,7 +156,7 @@ class ws_oneclick_pup {
 		
 		update_option($this->options_name, $this->options);
 		
-		handleOneClick(); //Do something if OneClick is installed
+		$this->handleOneClick(); //Do something if OneClick is installed
  	}
  	
  	/**
@@ -260,7 +260,6 @@ class ws_oneclick_pup {
 	}
 	
 	function admin_foot(){
-		//xxxx
 		/*
 		echo '<pre>';
 		
@@ -519,7 +518,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			}
 		}
 		
-		//$plugin_changed=true; //XXXXXX debug - force status update
+		//$plugin_changed=true; //debug - force status update
 		if (
 			isset( $this->update_enabled->last_checked ) &&
 			( ( time() - $this->update_enabled->last_checked ) < $this->options['plugin_check_interval']) &&
