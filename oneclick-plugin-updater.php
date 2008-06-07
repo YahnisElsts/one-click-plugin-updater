@@ -2,8 +2,8 @@
 /*
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
-Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. Beta.
-Version: 2.1.2
+Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
+Version: 2.2
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.1.2';
+	var $version='2.2';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -43,6 +43,7 @@ class ws_oneclick_pup {
 	var $options;
 	var $options_name='ws_oneclick_options';
 	var $defaults;
+	var $ff_extension_url = 'https://addons.mozilla.org/en-US/firefox/addon/7511'; 
 
 	function ws_oneclick_pup() {
 		$my_file = str_replace('\\', '/',__FILE__);
@@ -60,11 +61,14 @@ class ws_oneclick_pup {
 			'enable_plugin_checks' => true,
 			'enable_wordpress_checks' => true,
 			'anonymize' => false,
-			'plugin_check_interval' => 43201,
+			'plugin_check_interval' => 43200,
 			'wordpress_check_interval' => 43200,
-			'global_notices' => true,
+			'global_notices' => $this->is_wp25(),
 			'new_file_permissions' => 0755, 
 			'debug' => false,
+			'magic_key' => '',
+			'confirm_remote_installs' => true,
+			'show_miniguide' => false,
 		);
 		$this->options = get_option($this->options_name);
 		if(!is_array($this->options)){
@@ -83,10 +87,8 @@ class ws_oneclick_pup {
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
 		
-		//This is used both for marking plugins with enabled notifications
-		//and checking at different time intervals.	
-		if ($this->options['enable_plugin_checks'])
-			add_action('load-plugins.php', array(&$this,'check_update_notifications'));
+		//This is used for marking plugins with enabled update notifications
+		add_action('load-plugins.php', array(&$this,'check_update_notifications'));
 			
 		if ( ! $this->options['enable_wordpress_checks'])
 			remove_action('init', 'wp_version_check');
@@ -99,15 +101,33 @@ class ws_oneclick_pup {
 			add_action('init', array(&$this,'check_wordpress_version'));
 		}
 		
-		//Hooks that work in WP 2.5 only
-		if ( file_exists( ABSPATH . 'wp-admin/update.php' ) ) {
+		if ($this->options['enable_plugin_checks']){
+			//See if the custom update checker should be used.
+			if ($this->options['global_notices']) {
+				//If global notices are enabled, check for updates on every page
+				add_action('admin_head', array(&$this,'check_plugin_updates'));
+			} elseif( $this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) ){
+				//Otherwise, check at the usual time
+				add_action('load-plugins.php', array(&$this,'check_plugin_updates'));
+			}  
+			
+		}
+		
+		//Hooks that only work in WP 2.5 and above
+		if ( $this->is_wp25() ) {
 			add_action('admin_init', array(&$this, 'admin_init'));
-			if ($this->options['global_notices'])
+			if ($this->options['global_notices']) {
 				add_action( 'admin_notices', array(&$this, 'global_plugin_notices') );
+			}
 		} else {
 			//better than nothing
 			add_action('admin_head', array(&$this, 'admin_init'));
 		}
+		
+		if ($this->options['oneclick_deactivated_notice']){
+			add_action( 'admin_notices', array(&$this, 'oneclick_notice') );
+		}
+		//*/
 	}
 	
 	/**
@@ -128,8 +148,40 @@ class ws_oneclick_pup {
 			$this->options = array();				
 		};
 		$this->options = array_merge($this->defaults, $this->options);
+		
+		if (empty($this->options['magic_key'])){
+			//generate a new "magic" key for installing plugins from the FF extension
+			$this->options['magic_key'] = md5(microtime());
+		}
+		
 		update_option($this->options_name, $this->options);
+		
+		handleOneClick(); //Do something if OneClick is installed
  	}
+ 	
+ 	/**
+ 	 * Special processing if OneClick is installed/active
+ 	 */
+ 	function handleOneClick(){
+ 		$plugins = get_plugins();
+		$active  = get_option( 'active_plugins' );
+		
+		$oneclick = 'oneclick/oneclick.php';
+		
+		//Check if OneClick is installed
+		if (isset($plugins[$oneclick])){
+			//Enable the miniguide menu
+			$this->options['show_miniguide'] = true;
+			
+			//Check if OneClick is active
+			if (in_array($oneclick, $active)){
+				//Deactivate OneClick
+				$this->deActivatePlugin($oneclick);
+			}
+			
+			update_option($this->options_name, $this->options);
+		}
+	}
  	
  	function format_debug_log($min_level=0){
  		$log = '';
@@ -141,15 +193,28 @@ class ws_oneclick_pup {
 		return $log;
 	}
 	
+	function is_wp25(){
+		return file_exists( ABSPATH . 'wp-admin/update.php' );
+	}
+	
 	function admin_init(){
 		//Hackety-hack! Unfortunately I can't do this earlier (AFAIK).
-		//Unfortunately, the admin_init hook only exists in WP 2.5
+		//Also, the admin_init hook only exists in WP 2.5
 		
 		if ($this->options['enable_plugin_checks']){
 			if ($this->options['updater_module']=='updater_plugin'){
 				remove_action('after_plugin_row', 'wp_plugin_update_row'); //Muahahaha
 				add_action('after_plugin_row', array(&$this, 'plugin_update_row'));
 			}
+			
+			if( $this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) 
+			    || $this->options['global_notices'] 
+			  )
+			{
+				//Remove the original hook. My own hook was added in the constructor.
+				remove_action('load-plugins.php', 'wp_update_plugins');
+			}
+			
 		} else {
 			remove_action('after_plugin_row', 'wp_plugin_update_row');
 			remove_action('load-plugins.php', 'wp_update_plugins');
@@ -160,22 +225,22 @@ class ws_oneclick_pup {
 			remove_action( 'admin_notices', 'update_nag', 3 );
 		}
 		
-		if( $this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) ){
-			remove_action('load-plugins.php', 'wp_update_plugins');					
-		}
-		
 	}
 	
 	function add_admin_menus(){
-		//*
 		add_submenu_page('plugins.php', 'Upgrade Settings', 'Upgrade Settings', 'edit_plugins', 
 			'plugin_upgrade_options', array(&$this, 'options_page'));
-			
+		
+		//only privileged users can install plugins
 		add_submenu_page('plugins.php', 'Install New', 'Install a Plugin', 'edit_plugins', 
-			'install_plugin', array(&$this, 'installer_page'));
+				'install_plugin', array(&$this, 'installer_page'));
 		add_submenu_page('themes.php', 'Install New', 'Install a Theme', 'edit_themes', 
-			'install_theme', array(&$this, 'installer_page'));
-		//*/
+				'install_theme', array(&$this, 'installer_page'));
+				
+		if ($this->options['show_miniguide']){
+			add_submenu_page('index.php', 'One Click Plugin Updater Miniguide', 'One Click Updater Miniguide',
+				 'edit_plugins', 'one_click_miniguide', array(&$this, 'miniguide_page'));
+		}
 	}
 	
 	function admin_head(){
@@ -198,42 +263,43 @@ class ws_oneclick_pup {
 		//xxxx
 		/*
 		echo '<pre>';
-		$update = get_option('update_plugins');
-		print_r($update);
+		
+		
+		$plugins = get_plugins();
+		$active  = get_option( 'active_plugins' );
+		
+		print_r($plugins);
+		print_r($active);
+		
 		echo '</pre>';
 		//*/
-		
-		//Only execute on the plugin list itself.
-		if ( (stristr($_SERVER['REQUEST_URI'], 'plugins.php')===false) ||
-			 (!empty($_GET['page']))
-		) return;
+		if (!empty($_GET['page'])) return; //Don't run on plugin subpages
 		
 		$do_update_url = get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/do_update.php';
 		
-		$plugins=get_plugins();
-		$update = get_option('update_plugins');
-		$active  = get_option('active_plugins' );
-		$count_active = count($active);
-		if (is_array($update->response)){
-			$count_update = count($update->response);
-		} else $count_update = 0;
-		
-		$plugin_msg = "$count_active active plugins";
-		if ($count_update>0){
-			$s = ($count_update==1)?'':'s';
-			$plugin_msg .= ", <strong>$count_update upgrade$s available</strong>";
-		
-			if (function_exists('activate_plugin')){
-				$link =  $do_update_url.'?action=upgrade_all';
-				$link = wp_nonce_url($link, 'upgrade_all');
-				$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
+		//Only execute on the plugin list itself.
+		if ( (stristr($_SERVER['REQUEST_URI'], 'plugins.php')!==false) ) {
+			
+			$plugins=get_plugins();
+			$update = get_option('update_plugins');
+			$active  = get_option('active_plugins' );
+			$count_active = count($active);
+			if (is_array($update->response)){
+				$count_update = count($update->response);
+			} else $count_update = 0;
+			
+			$plugin_msg = "$count_active active plugins";
+			if ($count_update>0){
+				$s = ($count_update==1)?'':'s';
+				$plugin_msg .= ", <strong>$count_update upgrade$s available</strong>";
+			
+				if (function_exists('activate_plugin')){
+					$link =  $do_update_url.'?action=upgrade_all';
+					$link = wp_nonce_url($link, 'upgrade_all');
+					$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
+				}
 			}
-		}
 		
-		//A partially verifiable link to delete a plugin
-		$delete_link = $do_update_url.'?action=delete_plugin';
-		$delete_link = wp_nonce_url($delete_link, 'delete_plugin');
-
 		?>
 
 <script type="text/javascript">
@@ -264,6 +330,12 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		//Add a status msg. 
 		$j("div.wrap h2:first").after("<p class='plugins-overview'>"+plugin_msg+"</p>");
 		
+<?php
+		if (current_user_can('edit_plugins')){
+			//A partially verifiable link to delete a plugin
+			$delete_link = $do_update_url.'?action=delete_plugin';
+			$delete_link = wp_nonce_url($delete_link, 'delete_plugin');
+?>
 		//Add the "Delete" links to inactive plugins
 		$j("tr:not(.active) td.action-links").each(function (x) {
 			//construct the specific URL
@@ -277,6 +349,8 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			$j(this).prepend('<a href="javascript:verifyPluginDelete(\''+ url +'\')">Delete</a> | ');
 		});
 		
+<?php 	} 	?>
+		
 	});	
 	
 	function verifyPluginDelete(url){
@@ -288,6 +362,64 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 </script>
 		<?php
 		
+		} else if ( (stristr($_SERVER['REQUEST_URI'], 'themes.php')!==false) && current_user_can('edit_themes')) {
+			//Only execute on the "Themes" page
+			echo "Themes, yay!";
+			
+			//A partially verifiable link to delete a plugin
+			$delete_link = $do_update_url.'?action=delete_theme';
+			$delete_link = wp_nonce_url($delete_link, 'delete_theme');
+			$delete_link = html_entity_decode($delete_link); //No, WP, I don't want your damn &#038;'s!
+?>
+<style type='text/css'>
+.theme-delete {
+	position:absolute;
+	right: 16px;
+}
+
+.available-theme {
+	position: relative;
+}
+</style>
+<script type="text/javascript">
+	$j = jQuery.noConflict();
+	
+	$j(document).ready(function() {
+		
+		//Add the "Delete" links to all themes except the current one
+		$j("div.available-theme").each(function (x) {
+			//construct the specific URL
+			h3 = $j(this).find("h3");
+			theme_title = h3.text();
+			select_url = $j(h3).find("a").attr('href');
+			
+			re = /[&\?]template=(.+?)($|&)/i
+			matches = re.exec(select_url);
+			if (!matches) return true;
+			theme_folder = matches[1];
+			
+			//add the "Delete" link			
+			$j(this).prepend(' <a href="javascript:verifyThemeDelete(\''+ 
+				theme_folder +'\',\''+ escape(theme_title) +'\')" class="theme-delete">Delete</a> ');
+			//(theme_title is escape()'d because it might contain characters that are special in JS)
+		});
+		
+	});	
+	
+	function verifyThemeDelete(theme, title){
+		title = unescape(title);
+		//construct the specific URL
+		url = '<?php echo $delete_link; ?>' + '&theme='+theme; 
+		//theme was already escaped, as it was retrieved from an URL on the "Themes" tab
+		if (confirm("Do you really want to delete the theme '"+title+"'?\r\nDo this at your own risk!")){
+			document.location = url;
+		}
+		return void(0);
+	}
+</script>
+		<?php
+			
+		} 
 	}
 	
 	function plugin_update_row( $file ) {
@@ -367,13 +499,9 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		$current = get_option( 'update_plugins' );
 		
 		$plugin_changed = empty($current);
-		$core_override = false; 
-		/* Whether to set the update_plugins option. There's additional checking and 
-		   processing at the end of this function.	*/
 		
 		foreach ( $plugins as $file => $p ) {
 			$plugins[$file]['Version']='0'; //fake zero version 
-			//$plugins[$file]['Version'] = $this->version_decrease($plugins[$file]['Version']);
 			
 			if( !isset($this->update_enabled->status[$file]) ) {
 				$this->update_enabled->status[$file]=false; //not known yet, assume false
@@ -388,7 +516,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 				unset($this->update_enabled->status[$file]);
 				/* Maybe comment this out not to waste time checking for updates every time a plugin is deleted. */
 				$plugin_changed = true; 
-				$core_override = true;
 			}
 		}
 		
@@ -412,7 +539,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		$http_request .= "Host: api.wordpress.org\r\n";
 		$http_request .= "Content-Type: application/x-www-form-urlencoded; charset=" . get_option('blog_charset') . "\r\n";
 		$http_request .= "Content-Length: " . strlen($request) . "\r\n";
-		$http_request .= 'User-Agent: WordPress/2.3; http://not-really-a-domain.com/' . "\r\n";
+		$http_request .= 'User-Agent: WordPress/2.3; http://not-a-real-domain.com/' . "\r\n";
 		$http_request .= "\r\n";
 		$http_request .= $request;
 	
@@ -431,30 +558,96 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		//print_r($response);
 	
 		if ( $response ) {
-			$cleaned_response = array();
 			foreach($response as $file => $data) {
 				$this->update_enabled->status[$file]=true;
-				if (version_compare($data->new_version, $orig_plugins[$file]['Version'])>0){
-					$cleaned_response[$file] = $data;
-				}
 			}
 		}
 		
 		update_option( 'update_enabled_plugins', $this->update_enabled);
 		
-		/** Save the info for WP as well, if I'm supposed to **/
-		if( ($this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) || $core_override)
-			&& ($this->options['enable_plugin_checks'])
-		 ){
-			$new_option = '';
-			$new_option->last_checked = time();
-			$new_option->checked = array(); //it's not being used anywhere else in WP core anyway.
-			if ( isset($cleaned_response) ) $new_option->response = $cleaned_response;
-			
-			update_option( 'update_plugins', $new_option );						
+		return true;
+	}
+	
+	/**
+	 * check_plugin_updates - check if there are new version of installed plugins.
+	 *
+	 * This is almost exactly like wp_update_plugins, but can give out less information about
+	 * the blog.
+	 */
+	function check_plugin_updates() {
+		global $wp_version;
+	
+		if ( !function_exists('fsockopen') )
+			return false;
+	
+		$plugins = get_plugins();
+		$active  = get_option( 'active_plugins' );
+		$current = get_option( 'update_plugins' );
+	
+		$new_option = '';
+		$new_option->last_checked = time();
+	
+		$plugin_changed = false;
+		foreach ( $plugins as $file => $p ) {
+			$new_option->checked[ $file ] = $p['Version'];
+	
+			if ( !isset( $current->checked[ $file ] ) ) {
+				$plugin_changed = true;
+				continue;
+			}
+	
+			if ( strval($current->checked[ $file ]) !== strval($p['Version']) )
+				$plugin_changed = true;
+		}
+	
+		if (
+			isset( $current->last_checked ) &&
+			$this->options['plugin_check_interval'] > ( time() - $current->last_checked ) &&
+			!$plugin_changed
+		)
+			return false;
+	
+		$to_send->plugins = $plugins;
+		$to_send->active = $active;
+		$send = serialize( $to_send );
+	
+		$request = 'plugins=' . urlencode( $send );
+		$http_request  = "POST /plugins/update-check/1.0/ HTTP/1.0\r\n";
+		$http_request .= "Host: api.wordpress.org\r\n";
+		$http_request .= "Content-Type: application/x-www-form-urlencoded; charset=" . get_option('blog_charset') . "\r\n";
+		$http_request .= "Content-Length: " . strlen($request) . "\r\n";
+		
+		if ($this->options['anonymize']) {
+			$http_request .= 'User-Agent: WordPress/2.3; http://not-really-a-domain.com/' . "\r\n";
+		} else {
+			$http_request .= 'User-Agent: WordPress/' . $wp_version . '; ' . get_bloginfo('url') . "\r\n";
 		}
 		
-		return true;
+		$http_request .= "\r\n";
+		$http_request .= $request;
+	
+		$response = '';
+		if( false != ( $fs = @fsockopen( 'api.wordpress.org', 80, $errno, $errstr, 3) ) && is_resource($fs) ) {
+			fwrite($fs, $http_request);
+	
+			while ( !feof($fs) )
+				$response .= fgets($fs, 1160); // One TCP-IP packet
+			fclose($fs);
+			$response = explode("\r\n\r\n", $response, 2);
+		}
+	
+		$response = unserialize( $response[1] );
+		
+		if ( $response ) {
+			$new_option->response = $response;
+			//Plugins that have updates, also have notifications enabled (obviously)
+			foreach($response as $file => $data) {
+				$this->update_enabled->status[$file]=true;
+			}
+			update_option( 'update_enabled_plugins', $this->update_enabled);
+		}
+	
+		update_option( 'update_plugins', $new_option );
 	}
 	
 	/**
@@ -573,6 +766,42 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		return true;
 	}
 	
+	/**
+	 * recursive_mkdir - recursively create a directory
+	 *
+	 * Note: The function expects $path to be an absolute path.
+	 */
+	function recursive_mkdir($path, $mode = 0755) {
+		//If the directory is inside the WP path we don't need to validate the whole tree.
+		//This also lets circumvent an open_basedir restriction problem with is_dir().
+		$okABSPATH = preg_replace('/[\\/]/', DIRECTORY_SEPARATOR, ABSPATH);
+		if (strpos($path, $okABSPATH) === 0){
+			$tmppath = $okABSPATH;
+			$path = substr($path, strlen($tmppath));
+			//Remove the trailing slash from $tmppath (if present)
+			if (substr($tmppath, -1) == DIRECTORY_SEPARATOR) {
+				$tmppath = substr($tmppath, 0, strlen($tmppath)-1);
+			}
+		} else {
+			$tmppath = '';
+		}
+		
+		$dirs = explode(DIRECTORY_SEPARATOR, $path); 
+	    foreach ($dirs as $directory){
+	    	if(empty($directory)) continue;
+	    	
+	    	$tmppath = $tmppath . DIRECTORY_SEPARATOR . $directory; 
+	    	if ( ! is_dir($tmppath) ){
+				$this->dprint("Creating directory '$tmppath'", 1);
+				if ( !mkdir($tmppath, $mode) ){
+					$this->dprint("Can't create directory '$tmppath'!", 3);
+					return new WP_Error('fs_mkdir', "Can't create directory '$tmppath'.");
+				}
+			}
+	    }
+	    return true;
+	}
+	
     /**
      * extractFile() - extract the plugin or theme to the right folder
      * 
@@ -589,12 +818,12 @@ echo "\tvar plugin_msg = '$plugin_msg';";
     	//Do some early autodetection
     	if(empty($target)){
 			if ($type == 'plugin'){
-				$target = ABSPATH . PLUGINDIR . '/';
+				$target = ABSPATH . PLUGINDIR . DIRECTORY_SEPARATOR;
 			} else if ($type == 'theme'){
 				if (function_exists('get_theme_root')){
-					$target = get_theme_root() . '/';
+					$target = get_theme_root() . DIRECTORY_SEPARATOR;
 				} else {
-					$target = ABSPATH . 'wp-content/themes/';
+					$target = ABSPATH . 'wp-content'.DIRECTORY_SEPARATOR.'themes'.DIRECTORY_SEPARATOR;
 				} 
 			}
 		}
@@ -642,6 +871,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			if ( false == ($archive_files = $archive->listContent()) ){
 				// Nope.
 				$this->dprint("PclZip failed!", 3);
+				$this->dprint("PclZip says : '".$archive->errorInfo(true)."'", 3);
 				$error_msg = "PclZip Error : '".$archive->errorInfo(true)."'";
 				return new WP_Error('zip_unsupported', $error_msg);
 			} else {
@@ -669,7 +899,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 							$magic_descriptor['file_header'] = $plugin;
 							$magic_descriptor['type'] = $type;
 							$magic_descriptor['plugin_file'] = $file_info['filename'];
-							$target = ABSPATH . PLUGINDIR . '/';
+							$target = ABSPATH . PLUGINDIR . DIRECTORY_SEPARATOR;
 							break;
 						}
 						
@@ -690,43 +920,25 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 						return new WP_Error("ad_failed", "Autodetection failed - this doesn't look like a plugin or a theme.");
 					}
 				}
-				//Finally, extract the files! Code shamelessly stolen from WP core (file.php).
-				$to = trailingslashit($target);
+				//Finally, extract the files! Some of the code shamelessly stolen from WP core (file.php).
+				if (substr($target,-1) != DIRECTORY_SEPARATOR) $target .= DIRECTORY_SEPARATOR;
+				$to = preg_replace('/[\\/]/', DIRECTORY_SEPARATOR, $target);
 				$this->dprint("Starting extraction to folder '$to'.", 1);
-				/**
-				 * I'm going to bloody well assume the target directory exists! This is a
-				 * workaround for a bug; it needs to be fixed sooner or later!
-				 */ 
-				/*
-				$path = explode('/', $to);
-				$tmppath = '';
-				for ( $j = 0; $j < count($path) - 1; $j++ ) {
-					$tmppath .= $path[$j] . '/';
-					if ( ! is_dir($tmppath) && ($tmppath != '/')){
-						$this->dprint("Creating directory '$tmppath'", 1);
-						if ( ! mkdir($tmppath, 0755)) {
-							$this->dprint("Can't create directory '$tmppath!'", 3);
-							return new WP_Error('fs_mkdir', "Can't create directory '$tmppath'.");
-						};
-					}
+				
+				//Make sure the target directory exists
+				$rez = $this->recursive_mkdir($to, $this->options['new_file_permissions']);
+				if (is_wp_error($rez)){
+					return $rez;
 				}
-				*/
 
 				foreach ($archive_files as $file) {
-					$path = explode('/', $file['filename']);
-					$tmppath = '';
-					// Loop through each of the items and check that the folder exists.
-					for ( $j = 0; $j < count($path) - 1; $j++ ) {
-						if ($path[$j]=='') continue;
-						$tmppath .= $path[$j] . '/';
-						if ( ! is_dir($to . $tmppath) ){
-							$this->dprint("Creating directory '{$to}{$tmppath}'", 1);
-							if ( !mkdir($to . $tmppath, 0755) ){
-								$this->dprint("Can't create directory '$tmppath' in '$to'!", 3);
-								return new WP_Error('fs_mkdir', "Can't create directory '$tmppath' in '$to'.");
-							}
-						}
+					$path = dirname($file['filename']);
+					//Create the file's directory if neccessary
+					$rez = $this->recursive_mkdir($to . $path, $this->options['new_file_permissions']);
+					if (is_wp_error($rez)){
+						return $rez;
 					}
+					
 					// We've made sure the folders are there, so let's extract the file now:
 					if ( ! $file['folder'] ){
 						$this->dprint("Extracting $file[filename]", 1);
@@ -765,7 +977,7 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 								return new WP_Error('fs_put_contents', "Can't create file '$file[filename]' in '$to'");
 							}
 						} else {
-							//special handling for zero-byte files (file_put_contents woudln't work)
+							//special handling for zero-byte files (file_put_contents wouldn't work)
 							$fh = @fopen($to . $file['filename'], 'wb');
 							if(!$fh){
 								$this->dprint("Can't create a zero-byte file $file[filename] in $to!", 3);
@@ -801,7 +1013,10 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			 	$plugin_data, $matches, PREG_SET_ORDER)	)
 		{
 			foreach($matches as $match){
-				$names[strtolower($match[1])] = trim($match[2]);
+				$key = strtolower($match[1]);
+				if (empty($names[$key]) && ($key != 'author')){
+					$names[strtolower($match[1])] = trim($match[2]);
+				}
 			}
 		}
 		
@@ -860,6 +1075,8 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			$this->options['plugin_check_interval'] = intval($_POST['plugin_check_interval']);
 			$this->options['wordpress_check_interval'] = intval($_POST['wordpress_check_interval']);
 			$this->options['debug'] = !empty($_POST['debug']);
+			$this->options['confirm_remote_installs'] = !empty($_POST['confirm_remote_installs']);
+			$this->options['show_miniguide'] = !empty($_POST['show_miniguide']);
 			$this->debug = $this->options['debug'];
 			$this->options['global_notices'] = !empty($_POST['global_notices']);
 			if (!empty($_POST['new_file_permsissions']))
@@ -873,7 +1090,10 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		?>
 <div class="wrap">
 <h2>Upgrade Settings</h2>
-<p>Here you can configure plugin update notifications, set how often WordPress checks for new versions, and so on. This page was created by the <a>One Click Plugin Updater</a> plugin.</p>
+<p>Here you can configure plugin update notifications, set how often WordPress checks for new versions, 
+and so on. This page was created by the 
+<a href='http://w-shadow.com/blog/2008/04/06/one-click-updater-plugin-20/'>One Click Plugin Updater</a> 
+plugin.</p>
 
 <form name="plugin_upgrade_options" method="post" 
 action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
@@ -985,16 +1205,39 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 	</tr>
 </table>
 
-<h3>Other</h3>
+<h3>FireFox Extension</h3>
 <table class="form-table">
 	<tr>
 		<td colspan='2' style='font-size: 1em;'>
-		URL for the <a href='https://addons.mozilla.org/en-US/firefox/addon/5503'>OneClick FireFox extension</a> (different author): <br />
+		URL for the <a href='<?php echo $this->ff_extension_url; ?>'>
+			One-Click Installer for WP</a> extension: <br />
 		<?php
-		echo get_option('siteurl').'/wp-admin/plugins.php?page=install_plugin';
+		echo get_option('siteurl').'/wp-admin/plugins.php?page=install_plugin&magic='
+			 	.$this->options['magic_key'];
 		?>
 		</td>
 	</tr>
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='confirm_remote_installs' id='confirm_remote_installs' <?php
+			if ($this->options['confirm_remote_installs']) echo "checked='checked'";
+		?> />
+		Ask for confirmation when installing from FireFox </label>
+		</th>
+	</tr>
+	
+</table>
+
+<h3>Other</h3>
+<table class="form-table">
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='show_minguide' id='show_miniguide' <?php
+			if ($this->options['show_miniguide']) echo "checked='checked'";
+		?> />
+		Show the Miniguide submenu on Dashboard</label></th>
+	</tr>
+
 	<tr>
 		<th colspan='2' align='left'>
 		<label><input type='checkbox' name='debug' id='debug' <?php
@@ -1143,24 +1386,60 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 			//Looks like there's something to do! But lets verify the nonce first.
 			$arr = array_merge($_GET, $_POST);
 			$nonce = !empty($arr['_wpnonce'])?$arr['_wpnonce']:'';
-			if (!wp_verify_nonce($nonce, 'install_file')){
-				//Invalid nonce. Can only happen with external URL-based requests, legitimate or not.
-				//Let the user choose.
-				
-				$install_url = trailingslashit(get_option('siteurl')).
-					'wp-admin/plugins.php?page=install_plugin&fileurl='.urlencode($url).
-					"&installtype=$type";
-				$install_url = wp_nonce_url($install_url, 'install_file');
-					
-				$dontinstall_url = trailingslashit(get_option('siteurl')).
-					'wp-admin/plugins.php?page=install_plugin';
-				
-				if (($type == 'plugin') || ($type == 'theme')){
-					$what = $type;
-				} else $what = 'plugin or theme';
-				
-				//It's debatable whether this looks good.
-				echo "<div class='updated' style='text-align: center'><h3>Are you sure?</h3>\n
+			$verified = false;
+			if (empty($nonce)){
+				//Missing nonce. Can only happen with external URL-based requests, legitimate or not.
+				//So check for the presence of the "magic" key
+				$magic = empty($_GET['magic'])?'':$_GET['magic'];
+				if ($magic != $this->options['magic_key']){
+					//It's debatable whether this looks good.
+					echo "<div class='updated' style='text-align: center'><h3>Insecure Request</h3>\n
+					<p>Looks like you're using the old OneClick FireFox extension, which is no
+					longer supported by this plugin.</p>
+					<p>Please install the new <strong>One-Click Installer for WP</strong> extension,
+					which is more secure and easier to use.
+					</p>
+					<p>
+					<a href='{$this->ff_extension_url}' 
+						class='button'>Install The New Extension</a> 
+					</p>
+					</div>";
+				} else {
+					//Magic key OK. Do I need to ask for confirmation?
+					if ($this->options['confirm_remote_installs']){
+						//Let the user choose.
+						$install_url = trailingslashit(get_option('siteurl')).
+							'wp-admin/plugins.php?page=install_plugin&fileurl='.urlencode($url).
+							"&installtype=$type";
+						$install_url = wp_nonce_url($install_url, 'install_file');
+							
+						$dontinstall_url = trailingslashit(get_option('siteurl')).
+							'wp-admin/plugins.php?page=install_plugin';
+						
+						if (($type == 'plugin') || ($type == 'theme')){
+							$what = $type;
+						} else $what = 'plugin or theme';
+						
+						//It's debatable whether this looks good.
+						echo "<div class='updated' style='text-align: center'><h3>Are you sure?</h3>\n
+						<p>Do you really want to install this $what on your blog? </p>
+						<p><strong>$url</strong></p>
+						<p>&nbsp;</p>
+						<p>
+						<a href='$install_url' class='button button-highlighted'>Yes, Install It</a> 
+						<a href='$dontinstall_url' class='button' style='margin-left: 20px;'>Don't Install</a>
+						</p>
+						</div>";
+					} else {
+						//Good to go without nonce verification
+						$verified = true;
+					}
+				}
+			} elseif (wp_verify_nonce($nonce, 'install_file')){
+				$verified = true;
+			} else {
+				//This shouldn't be possible. Nonce is invalid.
+				echo "<div class='updated' style='text-align: center'><h3>Invalid Request</h3>\n
 				<p>Do you really want to install this $what on your blog? </p>
 				<p><strong>$url</strong></p>
 				<p>&nbsp;</p>
@@ -1169,7 +1448,9 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 				<a href='$dontinstall_url' class='button' style='margin-left: 20px;'>Don't Install</a>
 				</p>
 				</div>";
-			} else {
+			}
+				
+			if ($verified) {
 				//The nonce is valid.
 				//Call the installer handler
 				$rez = $this->do_install($url, $filename, $type);
@@ -1317,6 +1598,90 @@ ENCTYPE="multipart/form-data" method="post">
 
 	}
 	
+	/**
+	 * Displays a page discussing the differences between OneClick and this plugin,
+	 * and how to use this plugin.
+	 */
+	function miniguide_page(){
+		/*
+		echo '<pre>';
+		
+		$plugins = get_plugins();
+		$active  = get_option( 'active_plugins' );
+		
+		print_r($plugins);
+		print_r($active);
+		
+		echo '</pre>';
+		*/
+?>
+	<div class="wrap">
+
+  	<h2>One Click Updater Miniguide</h2>
+  	<p>Greetings, sentient. On this page you will find a short overview of the plugin's features and how to 
+	use them. This will be especially useful if you have been using the old OneClick plugin before.</p>
+	
+	<h3>"One Click Plugin Updater" vs "OneClick"</h3>
+	<p>These are two different plugins, created by two different developers and - initially - for different 
+	goals. However, <em>One Click Updater</em> has now officially become <em>OneClick's</em> successor. 
+	It includes all the main features of OneClick, and more.</p>
+	
+	<h3>Installing Plugins and Themes</h3>
+	You can do this by going to <em>Plugins -&gt; Install a Plugin</em> or <em>Design -&gt; Install a Theme</em>,
+	respectively. Plugins/themes can be installed either from an URL (e.g. "http://something.com/plugin.zip"), 
+	or by uploading a ZIP archive from your computer. You will need to make sure the relevant
+	directories are writable by WordPress, as at this time the plugin only supports direct filesystem access.
+	FTP support may be added in a later version.
+	
+	<h3>Firefox Extension</h3>
+	<p>You can also use a Firefox add-on that will allow you to easily install plugins or themes by 
+	right-clicking on a download link and selecting "Install on your blog". The plugin automatically
+	detects wheter the link represents a plugin or a theme.
+	<a href='<?php echo $this->ff_extension_url; ?>'>Get the extension here.</a></p>
+	
+	<p>Older versions of this plugin (up to version 2.1.2) support the 
+	<a href='https://addons.mozilla.org/en-US/firefox/addon/5503'>OneClick for WordPress</a> add-on. This 
+	backwards compatibility has been dropped in later versions in favor of the 
+	<a href='<?php echo $this->ff_extension_url; ?>'>aforementioned extension</a>, which is more secure
+	and supports autodetection.  
+	</p>
+	
+	<h3>Deleting Plugins and Themes</h3>
+	<p>You can delete an inactive plugin by clicking the appropriate "Delete" link in the <em>Plugins</em> 
+	tab. You can also delete themes in a similar way in the <em>Design -&gt; Themes</em> tab. 
+	The plugin will ask for confirmation when you try to delete something, but if you say "Yes" the thing
+	you deleted will be gone for good, so use this feature wisely.
+	</p>
+	
+	<h3>Automatic Upgrades</h3>
+	<p>This plugin lets you upgrade other plugins with a single click in WP 2.3 and up. WP 2.5 introduced
+	it's own built-in plugin updater, but you can still use this plugin for that if the built-in version
+	doesn't work. If using the plugin, you can also perform all pending updates with a single click ;)  
+	Select which one to use under <em>Plugins -&gt; Upgrade Settings</em>.</p>
+	
+	<p>Some other interesting stuff you can configure on that page : 
+	<ul>
+		<li>Global update notifications (notifies you about available upgrades on all admin pages, not just
+			<em>Plugins</em>).</li>
+		<li>Whether to inform WordPress.org about your blog's URL and version when checking 
+			(WP does this by default).</li>
+		<li>How often should WP check for plugin and core updates (you can even completely turn them off
+			if you want).</li>
+	</ul> 
+	</p>
+	
+	<h3>Reporting Bugs</h3>
+	You can leave a comment <a href='http://w-shadow.com/blog/2008/04/06/one-click-updater-plugin-20/'>
+	on my blog</a> or email me at <a href='mailto:whiteshadow@w-shadow.com'>whiteshadow@w-shadow.com</a>. 
+	
+	<p>That's all for this short introduction :) If you like, you can hide this page by unchecking the
+	"Show Miniguide" box under <em>Plugins -&gt; Upgrade Settings</em>.</p>  
+	
+  	</div>
+  	
+<?php		
+	}
+	
 	/** 
 	 * Displays a message that plugin updates are available if they are
 	 *
@@ -1400,7 +1765,7 @@ ENCTYPE="multipart/form-data" method="post">
 	        {
 	            if ( ($item != '.') && ($item != '..'))
 	            {
-	                $path = $directory . '/' . $item;
+	                $path = $directory . DIRECTORY_SEPARATOR . $item;
 	                if (is_dir($path) && !is_link($path)) {
 	                    if (!$this->deltree($path)){
 							return false;
