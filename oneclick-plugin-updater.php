@@ -1231,7 +1231,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 <table class="form-table">
 	<tr>
 		<th colspan='2' align='left'>
-		<label><input type='checkbox' name='show_minguide' id='show_miniguide' <?php
+		<label><input type='checkbox' name='show_miniguide' id='show_miniguide' <?php
 			if ($this->options['show_miniguide']) echo "checked='checked'";
 		?> />
 		Show the Miniguide submenu on Dashboard</label></th>
