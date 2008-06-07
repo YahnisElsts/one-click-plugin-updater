@@ -20,7 +20,7 @@ Having grown to far exceed it's original aim - to provide easy plugin updates in
 * Configure how often WordPress checks for plugin and core updates, which module is used to upgrade plugins (this plugin or the built-in updater), and other options. See *Plugins -> Upgrade Settings*.
 * Easily install new plugins and themes (be sure to read the notes below). The plugin adds two new menus for this - *Plugins -> Install a Plugin* and *Design -> Install a Theme*.
 * Delete plugins and themes from the Plugins/Themes tabs.
-* Compatible with the [OneClick Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/5503) (up to version 2.1.2 of the plugin). Later versions use a new, improved FF addon : [One-Click Installef for WP](https://addons.mozilla.org/en-US/firefox/addon/7511)
+* Compatible with the [OneClick Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/5503) (up to version 2.1.2 of the plugin). Later versions use a new, improved FF addon : [One-Click Installer for WP](https://addons.mozilla.org/en-US/firefox/addon/7511)
 * Now with extra safety - uses the WordPress nonce mechanism for almost all tasks.
 * Global plugin update notifications.
 
