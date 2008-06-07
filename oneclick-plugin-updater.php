@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2
+Version: 2.2.2
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2';
+	var $version='2.2.2';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -83,7 +83,8 @@ class ws_oneclick_pup {
 		
 		add_action('activate_'.$this->myfile, array(&$this,'activation'));
 		add_action('admin_head', array(&$this,'admin_head'));
-		add_action('admin_print_scripts', array(&$this,'admin_scripts'));
+		//add_action('admin_print_scripts', array(&$this,'admin_scripts'));
+		add_action('admin_menu', array(&$this,'admin_scripts')); //this seems to be the right hook for that
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
 		
@@ -255,8 +256,12 @@ class ws_oneclick_pup {
 	}
 	
 	function admin_scripts(){
-		if (stristr($_SERVER['REQUEST_URI'], 'plugins.php')===false) return;
-		wp_print_scripts( array( 'jquery' ));
+		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')>0) || 
+			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')>0)
+		   ) {
+		   		//The plugin needs JQuery for many of the UI modifications and confirmations
+		   		wp_enqueue_script('jquery');
+			}
 	}
 	
 	function admin_foot(){
@@ -363,7 +368,6 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 		
 		} else if ( (stristr($_SERVER['REQUEST_URI'], 'themes.php')!==false) && current_user_can('edit_themes')) {
 			//Only execute on the "Themes" page
-			echo "Themes, yay!";
 			
 			//A partially verifiable link to delete a plugin
 			$delete_link = $do_update_url.'?action=delete_theme';
