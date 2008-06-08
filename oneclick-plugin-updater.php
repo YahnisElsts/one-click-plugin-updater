@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.2
+Version: 2.2.3
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -31,7 +31,7 @@ if (!function_exists('file_put_contents')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2.2';
+	var $version='2.2.3';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -339,12 +339,13 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 			//A partially verifiable link to delete a plugin
 			$delete_link = $do_update_url.'?action=delete_plugin';
 			$delete_link = wp_nonce_url($delete_link, 'delete_plugin');
+			$delete_link = html_entity_decode($delete_link); //No, WP, I don't want your damn &#038;'s!
 ?>
 		//Add the "Delete" links to inactive plugins
 		$j("tr:not(.active) td.action-links").each(function (x) {
 			//construct the specific URL
 			url = '<?php echo $delete_link; ?>';
-			edit_url = $j(this).find("a:contains('Edit'):first").attr('href');
+			edit_url = $j(this).find("a:last").attr('href');
 			re = /\?file=(.+?)($|&)/i
 			matches = re.exec(edit_url);
 			if (!matches) return true;
