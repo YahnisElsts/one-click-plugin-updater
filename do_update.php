@@ -33,13 +33,20 @@
 	/**
 	 * Check if the relevant directories are writable and if the user has the permissions
 	 */
+	 
 	//Which directory do I need to check?
 	$check_dir = '';
-	$plugin_dir = realpath(ABSPATH . PLUGINDIR . DIRECTORY_SEPARATOR);
+	$plugin_dir = realpath(ABSPATH . PLUGINDIR . '/'); 
+	//It seems that on some systems realpath() will strip out the last slash, so I'll add it here. 
+	if ( (substr($plugin_dir,-1)!='/') && (substr($plugin_dir,-1)!='\\') ){
+		$plugin_dir .= '/';
+	}
+	
+	$ws_pup->dprint("Plugin directory is '$plugin_dir'",0);
 	if (function_exists('get_theme_root')){
-		$theme_dir = get_theme_root() . DIRECTORY_SEPARATOR;
+		$theme_dir = get_theme_root() . '/';
 	} else {
-		$theme_dir = realpath(ABSPATH . 'wp-content'.DIRECTORY_SEPARATOR.'themes'.DIRECTORY_SEPARATOR);
+		$theme_dir = realpath(ABSPATH . 'wp-content/themes').'/';
 	}
 	 
 	$what = 'thing'; //used in error messages - theme or plugin
