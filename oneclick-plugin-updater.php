@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.4
+Version: 2.2.5
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -272,7 +272,6 @@ class ws_oneclick_pup {
 		/*
 		echo '<pre>';
 		
-		
 		$plugins = get_plugins();
 		$active  = get_option( 'active_plugins' );
 		
@@ -326,13 +325,24 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 	$j = jQuery.noConflict();
 	
 	$j(document).ready(function() {
-		//Add different CSS dependent on whether a plugin has update notifications enabled. 
-		$j("td.name").each(function (x) {
-			if (update_enabled_plugins[$j(this).text()]) {
-				$j(this).addClass('update-notification-enabled');
-			} else {
-				$j(this).addClass('update-notification-disabled');
-			};
+		//Add different CSS dependent on whether a plugin has update notifications enabled.
+<?php 
+if (function_exists('is_ssl')){
+	//WP 2.6
+	echo "plugin_td_expr = 'th.check-column'";
+} else {
+	//WP 2.3 - 2.5.1
+	echo "plugin_td_expr = 'td.name'";
+} ?>		
+		$j("tbody.plugins tr").each(function (x) {
+			name_cell = $j(this).find('td.name');
+			if (name_cell){
+				if (update_enabled_plugins[name_cell.text()]) {
+					$j(this).addClass('update-notification-enabled');
+				} else {
+					$j(this).addClass('update-notification-disabled');
+				};
+			}
 		});
 		
 		//Add a status msg. 
