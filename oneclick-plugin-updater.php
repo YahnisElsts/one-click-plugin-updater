@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.5
+Version: 2.2.6
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -35,7 +35,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2.4';
+	var $version='2.2.6';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -250,8 +250,8 @@ class ws_oneclick_pup {
 	
 	function admin_head(){
 		//In this version the theme is also used in other pages.
-		if ( (stristr($_SERVER['REQUEST_URI'], 'plugins.php'===false)) &&
-			 (stristr($_SERVER['REQUEST_URI'], 'themes.php'===false)) )
+		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')===false) &&
+			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')===false) )
 			return;
 		
 		echo "<link rel='stylesheet' href='";
@@ -260,8 +260,8 @@ class ws_oneclick_pup {
 	}
 	
 	function admin_scripts(){
-		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')>0) || 
-			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')>0)
+		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')!==false) || 
+			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')!==false)
 		   ) {
 		   		//The plugin needs JQuery for many of the UI modifications and confirmations
 		   		wp_enqueue_script('jquery');
@@ -391,8 +391,7 @@ if (function_exists('is_ssl')){
 ?>
 <style type='text/css'>
 .theme-delete {
-	position:absolute;
-	right: 16px;
+	float:right;
 }
 
 .available-theme {
@@ -403,9 +402,8 @@ if (function_exists('is_ssl')){
 	$j = jQuery.noConflict();
 	
 	$j(document).ready(function() {
-		
 		//Add the "Delete" links to all themes except the current one
-		$j("div.available-theme").each(function (x) {
+		$j(".available-theme").each(function (x) {
 			//construct the specific URL
 			h3 = $j(this).find("h3");
 			theme_title = h3.text();
