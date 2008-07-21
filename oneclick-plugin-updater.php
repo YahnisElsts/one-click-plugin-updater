@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.6
+Version: 2.2.7
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -35,7 +35,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2.6';
+	var $version='2.2.7';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -329,13 +329,13 @@ echo "\tvar plugin_msg = '$plugin_msg';";
 <?php 
 if (function_exists('is_ssl')){
 	//WP 2.6
-	echo "plugin_td_expr = 'th.check-column'";
+	echo "plugin_tr_expr = '.plugins tr'";
 } else {
 	//WP 2.3 - 2.5.1
-	echo "plugin_td_expr = 'td.name'";
+	echo "plugin_tr_expr = '#plugins tr'";
 } ?>		
-		$j("tbody.plugins tr").each(function (x) {
-			name_cell = $j(this).find('td.name');
+		$j(plugin_tr_expr).each(function (x) {
+			name_cell = $j(this).find('.name');
 			if (name_cell){
 				if (update_enabled_plugins[name_cell.text()]) {
 					$j(this).addClass('update-notification-enabled');
