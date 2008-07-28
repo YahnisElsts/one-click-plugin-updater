@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.8
+Version: 2.2.9
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -35,7 +35,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2.8';
+	var $version='2.2.9';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -73,6 +73,7 @@ class ws_oneclick_pup {
 			'magic_key' => '',
 			'confirm_remote_installs' => true,
 			'show_miniguide' => false,
+			'oneclick_deactivated_notice' => false,
 		);
 		$this->options = get_option($this->options_name);
 		if(!is_array($this->options)){
@@ -209,7 +210,11 @@ class ws_oneclick_pup {
 		if ($this->options['enable_plugin_checks']){
 			if ($this->options['updater_module']=='updater_plugin'){
 				remove_action('after_plugin_row', 'wp_plugin_update_row'); //Muahahaha
-				add_action('after_plugin_row', array(&$this, 'plugin_update_row'));
+				if (function_exists('is_ssl')) {
+					add_action('after_plugin_row', array(&$this, 'plugin_update_row'), 1, 2);
+				} else {
+					add_action('after_plugin_row', array(&$this, 'plugin_update_row'));
+				}
 			}
 			
 			if( $this->options['anonymize'] || ($this->options['plugin_check_interval'] != 43200) 
@@ -272,11 +277,11 @@ class ws_oneclick_pup {
 		/*
 		echo '<pre>';
 		
-		$plugins = get_plugins();
-		$active  = get_option( 'active_plugins' );
+		//$plugins = get_plugins();
+		$update  = get_option( 'update_plugins' );
 		
-		print_r($plugins);
-		print_r($active);
+		//print_r($plugins);
+		print_r($update);
 		
 		echo '</pre>';
 		//*/
@@ -438,8 +443,13 @@ if (function_exists('is_ssl')){
 		} 
 	}
 	
-	function plugin_update_row( $file ) {
+	function plugin_update_row( $file, $new_plugin_data=null ) {
 		global $plugin_data;
+		
+		//the second parameter is only set in 2.6 and up
+		if ($new_plugin_data) {
+			$plugin_data = $new_plugin_data;
+		}
 		
 		$current = get_option( 'update_plugins' );
 		if ( !isset( $current->response[ $file ] ) ){
@@ -791,6 +801,7 @@ if (function_exists('is_ssl')){
 		//If the directory is inside the WP path we don't need to validate the whole tree.
 		//This also lets circumvent an open_basedir restriction problem with is_dir().
 		$okABSPATH = preg_replace('/[\\/]/', DIRECTORY_SEPARATOR, ABSPATH);
+		$path = preg_replace('/[\\/]/', DIRECTORY_SEPARATOR, $path);
 		if (strpos($path, $okABSPATH) === 0){
 			$tmppath = $okABSPATH;
 			$path = substr($path, strlen($tmppath));
@@ -802,7 +813,7 @@ if (function_exists('is_ssl')){
 			$tmppath = '';
 		}
 		
-		$dirs = explode(DIRECTORY_SEPARATOR, $path); 
+		$dirs = explode(DIRECTORY_SEPARATOR, $path);
 	    foreach ($dirs as $directory){
 	    	if(empty($directory)) continue;
 	    	
@@ -1735,7 +1746,7 @@ ENCTYPE="multipart/form-data" method="post">
 			$link =  get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
 					'/do_update.php?action=upgrade_all';
 			$link = wp_nonce_url($link, 'upgrade_all');
-			$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
+			//$plugin_msg .= " <a href=\'$link\' class=\'button\'>Upgrade All</a>";
 			
 			if (count($update_list)==1){
 				$name = array_pop($update_list);
@@ -1781,7 +1792,9 @@ ENCTYPE="multipart/form-data" method="post">
 	        {
 	            if ( ($item != '.') && ($item != '..'))
 	            {
-	                //$path = $directory . DIRECTORY_SEPARATOR . $item; //this just causes trouble
+	                //$path = $directory . DIRECTORY_SEPARATOR . $item; //this just causes trouble 
+					//Edit: Situation ambiguous. At this time the (non-)use of 
+					//the DIRECTORY_SEPARATOR constant is inconsistent in the code.
 	                $path = $directory . '/' . $item;
 	                if (is_dir($path) && !is_link($path)) {
 	                    if (!$this->deltree($path)){
