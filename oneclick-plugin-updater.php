@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.2.9
+Version: 2.3
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -35,7 +35,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.2.9';
+	var $version='2.3';
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -74,6 +74,7 @@ class ws_oneclick_pup {
 			'confirm_remote_installs' => true,
 			'show_miniguide' => false,
 			'oneclick_deactivated_notice' => false,
+			'mark_plugins_with_notifications' => true,
 		);
 		$this->options = get_option($this->options_name);
 		if(!is_array($this->options)){
@@ -88,8 +89,8 @@ class ws_oneclick_pup {
 		
 		add_action('activate_'.$this->myfile, array(&$this,'activation'));
 		add_action('admin_head', array(&$this,'admin_head'));
-		//add_action('admin_print_scripts', array(&$this,'admin_scripts'));
 		add_action('admin_menu', array(&$this,'admin_scripts')); //this seems to be the right hook for that
+		add_action('admin_print_scripts', array(&$this,'admin_print_scripts'));
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
 		
@@ -122,6 +123,7 @@ class ws_oneclick_pup {
 		//Hooks that only work in WP 2.5 and above
 		if ( $this->is_wp25() ) {
 			add_action('admin_init', array(&$this, 'admin_init'));
+			add_action('admin_notices', array(&$this, 'permanent_notices') );
 			if ($this->options['global_notices']) {
 				add_action( 'admin_notices', array(&$this, 'global_plugin_notices') );
 			}
@@ -130,10 +132,15 @@ class ws_oneclick_pup {
 			add_action('admin_head', array(&$this, 'admin_init'));
 		}
 		
+		/*
 		if ($this->options['oneclick_deactivated_notice']){
 			add_action( 'admin_notices', array(&$this, 'oneclick_notice') );
 		}
+		*/
 		//*/
+		
+		//AJAX handling
+		add_action('wp_ajax_hide_permanent_notice', array(&$this, 'ajax_hide_permanent_notice') );
 	}
 	
 	/**
@@ -164,6 +171,19 @@ class ws_oneclick_pup {
 		
 		$this->handleOneClick(); //Do something if OneClick is installed
  	}
+ 	
+ 	function ajax_hide_permanent_notice(){
+ 		if (empty($_POST['key'])) return '';
+ 		$notices = get_option ('permanent_admin_notices');
+ 		unset($notices[$_POST['key']]);
+ 		update_option('permanent_admin_notices', $notices);
+	}
+	
+	function add_permanent_notice($text, $key){
+ 		$notices = get_option ('permanent_admin_notices');
+		$notices['key'] = $text;
+ 		update_option('permanent_admin_notices', $notices);
+	}
  	
  	/**
  	 * Special processing if OneClick is installed/active
@@ -264,13 +284,38 @@ class ws_oneclick_pup {
 		echo "' type='text/css' />";
 	}
 	
+  /**
+   * ws_oneclick_pup::admin_scripts()
+   * Enqueues the required JavaScript libraries
+   *
+   * @return void
+   */
 	function admin_scripts(){
-		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')!==false) || 
-			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')!==false)
-		   ) {
-		   		//The plugin needs JQuery for many of the UI modifications and confirmations
-		   		wp_enqueue_script('jquery');
-			}
+   		//The plugin needs JQuery for many of the UI modifications and confirmations
+   		wp_enqueue_script('jquery');
+	}
+	
+  /**
+   * ws_oneclick_pup::admin_print_scripts()
+   * Outputs any JavaScript that needs to go in the head section
+   *
+   * @return void
+   */
+	function admin_print_scripts(){
+   		//The function for hiding notices
+   		?>
+<script type="text/javascript">
+function hide_permanent_notice(notice_key){
+	jQuery.post(
+		"<?php bloginfo( 'wpurl' ); ?>/wp-admin/admin-ajax.php", 
+		{ action: "hide_permanent_notice", key: notice_key },
+		function(data){
+		  jQuery('#permanent-notice-'+notice_key).hide();
+		}
+	);
+}
+</script>
+<?php	 
 	}
 	
 	function admin_foot(){
@@ -285,6 +330,7 @@ class ws_oneclick_pup {
 		
 		echo '</pre>';
 		//*/
+		
 		if (!empty($_GET['page'])) return; //Don't run on plugin subpages
 		
 		$do_update_url = get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/do_update.php';
@@ -315,29 +361,25 @@ class ws_oneclick_pup {
 		?>
 
 <script type="text/javascript">
-	var update_enabled_plugins = Array();
-<?php 
-if (isset($this->update_enabled->status) && (count($this->update_enabled->status)>0)) {
-	foreach($this->update_enabled->status as $file => $enabled) {
-		echo "\t update_enabled_plugins[\"",$plugins[$file]['Name'],"\"] = ",
-			($enabled?'true':'false'),";\n";
-	}
-}
-
-echo "\tvar plugin_msg = '$plugin_msg';";
-?>
-
 	$j = jQuery.noConflict();
 	
 	$j(document).ready(function() {
+<?php if ($this->options['mark_plugins_with_notifications']) { ?>
 		//Add different CSS dependent on whether a plugin has update notifications enabled.
+		var update_enabled_plugins = Array();
 <?php 
+if (isset($this->update_enabled->status) && (count($this->update_enabled->status)>0)) {
+	foreach($this->update_enabled->status as $file => $enabled) {
+		echo "\t\t update_enabled_plugins[\"",$plugins[$file]['Name'],"\"] = ",
+			($enabled?'true':'false'),";\n";
+	}
+}
 if (function_exists('is_ssl')){
 	//WP 2.6
-	echo "plugin_tr_expr = '.plugins tr'";
+	echo "\t\tplugin_tr_expr = '.plugins tr'";
 } else {
 	//WP 2.3 - 2.5.1
-	echo "plugin_tr_expr = '#plugins tr'";
+	echo "\t\tplugin_tr_expr = '#plugins tr'";
 } ?>		
 		$j(plugin_tr_expr).each(function (x) {
 			name_cell = $j(this).find('.name');
@@ -349,8 +391,10 @@ if (function_exists('is_ssl')){
 				};
 			}
 		});
+	<?php } ?>
 		
-		//Add a status msg. 
+		//Add a status msg.
+		<?php echo "var plugin_msg = '$plugin_msg';"; ?> 
 		$j("div.wrap h2:first").after("<p class='plugins-overview'>"+plugin_msg+"</p>");
 		
 <?php
@@ -1099,6 +1143,7 @@ if (function_exists('is_ssl')){
 			$this->options['enable_plugin_checks'] = !empty($_POST['enable_plugin_checks']);
 			$this->options['enable_wordpress_checks'] = !empty($_POST['enable_wordpress_checks']);
 			$this->options['anonymize'] = !empty($_POST['anonymize']);
+			$this->options['mark_plugins_with_notifications'] = !empty($_POST['mark_plugins_with_notifications']);
 			$this->options['plugin_check_interval'] = intval($_POST['plugin_check_interval']);
 			$this->options['wordpress_check_interval'] = intval($_POST['wordpress_check_interval']);
 			$this->options['debug'] = !empty($_POST['debug']);
@@ -1213,6 +1258,13 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 		Show global update notices</label></th>
 	</tr>
 <?php } ?>	
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='mark_plugins_with_notifications' id='mark_plugins_with_notifications' <?php
+			if ($this->options['mark_plugins_with_notifications']) echo "checked='checked'";
+		?> />
+		Highlight plugins that have update notifications enabled.</label></th>
+	</tr>
 </table>
 
 <h3>WordPress Updates</h3>
@@ -1707,6 +1759,17 @@ ENCTYPE="multipart/form-data" method="post">
   	</div>
   	
 <?php		
+	}
+	
+	function permanent_notices(){
+		$notices = get_option ('permanent_admin_notices');
+		if (empty($notices)) return;
+		foreach ($notices as $key=>$notice){
+			echo "<div class='plugin-update' id='permanent-notice-$key'>";
+			echo $notice;
+			echo " <small><a href='javascript:hide_permanent_notice(\"$key\")'>[hide]</a></small>";
+			echo "</div>";
+		}
 	}
 	
 	/** 
