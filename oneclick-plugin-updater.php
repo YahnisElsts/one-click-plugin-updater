@@ -189,6 +189,7 @@ class ws_oneclick_pup {
  	 * Special processing if OneClick is installed/active
  	 */
  	function handleOneClick(){
+ 		if (!function_exists('get_plugins')) return false;
  		$plugins = get_plugins();
 		$active  = get_option( 'active_plugins' );
 		
