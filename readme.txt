@@ -2,8 +2,8 @@
 Contributors: whiteshadow
 Tags: plugin, notification, upload, files, installation, admin, update, upgrade, update notification, automation
 Requires at least: 2.3
-Tested up to: 2.6
-Stable tag: 2.3
+Tested up to: 2.6.1
+Stable tag: 2.4
 
 Provides single-click plugin upgrades in WP 2.3 and up, visually marks plugins that have update notifications enabled, allows to easily install new plugins and themes, lets you control if and when WordPress checks for updates... and so on.
 
@@ -14,15 +14,18 @@ Having grown to far exceed it's original aim - to provide easy plugin updates in
 **Feature Overview**
 
 * Single-click plugin upgrades in WP 2.3 and up. The techniques that this plugin uses are slightly different from the built-in plugin upgrade feature in WP 2.5, so it's possible that on some blogs the plugin updater works and the built-in updater doesn't (or *vice versa*).
-* Upgrade all plugins with a single click (only in WP 2.5).
+* Upgrade all plugins with a single click (only in WP 2.5 and up).
 * Visually identify plugins that have update notifications enabled. They get a yellow-gold marker in the "Plugin Management" tab.
 * Quickly determine if there are any pending updates and how many plugins are active. This plugin displays that information right below the "Plugin Management" headline.
 * Configure how often WordPress checks for plugin and core updates, which module is used to upgrade plugins (this plugin or the built-in updater), and other options. See *Plugins -> Upgrade Settings*.
 * Easily install new plugins and themes (be sure to read the notes below). The plugin adds two new menus for this - *Plugins -> Install a Plugin* and *Design -> Install a Theme*.
 * Delete plugins and themes from the Plugins/Themes tabs.
 * Compatible with the [OneClick Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/5503) (up to version 2.1.2 of the plugin). Later versions use a new, improved FF addon : [One-Click Installef for WP](https://addons.mozilla.org/en-US/firefox/addon/7511)
-* Now with extra safety - uses the WordPress nonce mechanism for almost all tasks.
 * Global plugin update notifications.
+* You can disable update notifications for inactive plugins.
+* You can hide the little update count blurb displayed on the "Plugins" menu.
+* Now with extra safety - uses the WordPress nonce mechanism for almost all tasks.
+
 
 **Important Notes**
 

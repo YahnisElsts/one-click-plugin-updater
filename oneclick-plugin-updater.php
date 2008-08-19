@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.3
+Version: 2.4
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -12,6 +12,9 @@ Author URI: http://w-shadow.com/blog/
 Created by Janis Elsts (email : whiteshadow@w-shadow.com) 
 It's GPL.
 */
+
+//This plugin only needs to run on the admin end.
+if (is_admin() || defined('MUST_LOAD_OCPL')) {
 
 if (!function_exists('file_put_contents')){
 	//a simplified file_put_contents function for PHP 4
@@ -35,7 +38,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.3';
+	var $version='2.4'; //not used
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -75,6 +78,8 @@ class ws_oneclick_pup {
 			'show_miniguide' => false,
 			'oneclick_deactivated_notice' => false,
 			'mark_plugins_with_notifications' => true,
+			'hide_notifications_for_inactive' => false,
+			'hide_update_count_blurb' => false,
 		);
 		$this->options = get_option($this->options_name);
 		if(!is_array($this->options)){
@@ -283,6 +288,10 @@ class ws_oneclick_pup {
 		echo "<link rel='stylesheet' href='";
 		echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
 		echo "' type='text/css' />";
+		
+		if ($this->options['hide_update_count_blurb']){
+			echo "<style type='text/css'>#update-plugins { display: none ! important; }</style>";
+		}
 	}
 	
   /**
@@ -342,9 +351,23 @@ function hide_permanent_notice(notice_key){
 			$plugins=get_plugins();
 			$update = get_option('update_plugins');
 			$active  = get_option('active_plugins' );
+			
+			//How many active plugins there are
 			$count_active = count($active);
+			
+			//How many updates are available
 			if (is_array($update->response)){
-				$count_update = count($update->response);
+				if ($this->options['hide_notifications_for_inactive']){
+					//don't count updates for inactive plugins
+					$count_update = 0;
+					foreach($update->response as $plugin_file => $data){
+						if (in_array($plugin_file, $active)) 
+							$count_update++;
+					}
+					
+				} else {
+					$count_update = count($update->response);
+				}
 			} else $count_update = 0;
 			
 			$plugin_msg = "$count_active active plugins";
@@ -500,13 +523,22 @@ if (function_exists('is_ssl')){
 		if ( !isset( $current->response[ $file ] ) ){
 			return false;
 		}
+		
+		//Don't show the notification for inactive plugins (user-configured)
+		$active = get_option( 'active_plugins' );
+		if ($this->options['hide_notifications_for_inactive'] && !in_array($file, $active)){
+			return false;
+		}
+		
 	
 		$r = $current->response[ $file ];
 		$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
 		 '/do_update.php?action=update_plugin&plugin_file='.urlencode($file);
 		if(!empty($r->package)){
+			//Download URL is already known, so use that
 			$autoupdate_url .= '&download_url='.urlencode($r->package);
 		} else {
+			//OBSOLETE. do_update.php will use the plugin URL to autodetect the download URL.
 			$autoupdate_url .='&plugin_url='.urlencode($r->url);
 		}
 		
@@ -562,6 +594,10 @@ if (function_exists('is_ssl')){
 		@set_time_limit(300);
 
 		if ( !function_exists('fsockopen') )
+			return false;
+			
+		//Hack : make the plugin compatible with an unknown comment-related plugin
+		if ( !function_exists('get_plugins') )
 			return false;
 		
 		$plugins = get_plugins();
@@ -626,7 +662,7 @@ if (function_exists('is_ssl')){
 		}
 	
 		$response = unserialize( $response[1] );
-		//print_r($response);
+
 	
 		if ( $response ) {
 			foreach($response as $file => $data) {
@@ -647,8 +683,12 @@ if (function_exists('is_ssl')){
 	 */
 	function check_plugin_updates() {
 		global $wp_version;
-	
+		
 		if ( !function_exists('fsockopen') )
+			return false;
+		
+		//Hack : make compatible with an unknown comment-related plugin.
+		if ( !function_exists('get_plugins') )
 			return false;
 	
 		$plugins = get_plugins();
@@ -1152,6 +1192,8 @@ if (function_exists('is_ssl')){
 			$this->options['show_miniguide'] = !empty($_POST['show_miniguide']);
 			$this->debug = $this->options['debug'];
 			$this->options['global_notices'] = !empty($_POST['global_notices']);
+			$this->options['hide_notifications_for_inactive'] = !empty($_POST['hide_notifications_for_inactive']);
+			$this->options['hide_update_count_blurb'] = !empty($_POST['hide_update_count_blurb']);
 			if (!empty($_POST['new_file_permissions']))
 				$this->options['new_file_permissions'] = octdec(intval($_POST['new_file_permissions']));
 			
@@ -1266,6 +1308,22 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 		?> />
 		Highlight plugins that have update notifications enabled.</label></th>
 	</tr>
+	
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='hide_notifications_for_inactive' id='hide_notifications_for_inactive' <?php
+			if ($this->options['hide_notifications_for_inactive']) echo "checked='checked'";
+		?> />
+		Hide update notifications for inactive plugins.</label></th>
+	</tr>
+	
+	<tr>
+		<th colspan='2' align='left'>
+		<label><input type='checkbox' name='hide_update_count_blurb' id='hide_update_count_blurb' <?php
+			if ($this->options['hide_update_count_blurb']) echo "checked='checked'";
+		?> />
+		Hide the little update count blurb near "Plugins" menu.</label></th>
+	</tr>
 </table>
 
 <h3>WordPress Updates</h3>
@@ -1368,6 +1426,14 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 					$filename=tempnam(dirname(__FILE__), "PLG");
 					$this->dprint("Using alternate temporary file '$filename'.", 1);
 					$handle = fopen($filename, "wb");
+					//That didn't work too, try one last time and don't use tempnam (buggy on some systems).
+					if(!$handle) {
+						$this->dprint("Warning: couldn't create a temporary file at '$filename'.", 2);
+						//try to use the plugin's folder instead
+						$filename=dirname(__FILE__)."/plg".rand(0,1000000).".zip";
+						$this->dprint("Last attempt : using alternate temporary file '$filename'.", 1);
+						$handle = fopen($filename, "wb");
+					}
 				}
 				if(!$handle) {
 					$this->dprint("Error: couldn't create a temporary file '$filename'.", 3);
@@ -1775,9 +1841,7 @@ ENCTYPE="multipart/form-data" method="post">
 	
 	/** 
 	 * Displays a message that plugin updates are available if they are
-	 *
-	 * @author	Viper007Bond
-	 * @authoruri http://www.viper007bond.com/
+	 * Originally by Viper007Bond @ http://www.viper007bond.com/
 	 */
 	function global_plugin_notices() {
 		$current = get_option( 'update_plugins' );
@@ -1786,9 +1850,8 @@ ENCTYPE="multipart/form-data" method="post">
 		
 		if (!function_exists('activate_plugin')) return; //Only in WP 2.5
 
-		// Since the message can get spammy, only display activated plugins
-		$active_plugins = get_option('active_plugins');
-		if ( empty($active_plugins) || !is_array($active_plugins) ) return;
+		$active = get_option('active_plugins');
+		//if ( empty($active_plugins) || !is_array($active_plugins) ) return;
 
 		$plugins = get_plugins();
 
@@ -1796,9 +1859,19 @@ ENCTYPE="multipart/form-data" method="post">
 		
 		$header = false;
 		foreach ( $current->response as $plugin_file => $update_data ) {
-			// Make sure the plugin data is known and that it's activated
-			if ( empty( $plugins[$plugin_file] ) /*|| !in_array( $plugin_file, $active_plugins )*/ ) continue;
-
+ 
+			//Skip certain notifications
+			if ( 
+				 //Plugin must be actually installed
+				 empty( $plugins[$plugin_file] ) ||
+				 //Plugin must be active (user-configurable)
+				 (
+				 	$this->options['hide_notifications_for_inactive'] 
+					 && !in_array( $plugin_file, $active)
+				 ) 
+				) continue;
+				
+				
 			// Make sure there is something to display
 			if ( empty($plugins[$plugin_file]['Name']) ) $plugins[$plugin_file]['Name'] = $plugin_file;
 			
@@ -1888,5 +1961,7 @@ ENCTYPE="multipart/form-data" method="post">
 } // if class_exists... ends here
 
 $ws_pup = new ws_oneclick_pup();
+
+}
 
 ?>
