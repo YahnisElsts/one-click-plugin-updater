@@ -2,6 +2,10 @@
 /*
 	Update the plugin(s)
 */
+	//Let the main plugin file know it must load even though is_admin() will be false.
+	define('MUST_LOAD_OCPL', true);
+
+	//Load the WordPress core & admin backend
 	require_once("../../../wp-config.php");
 	require_once(ABSPATH . "/wp-admin/admin.php");
 	
@@ -154,7 +158,7 @@ switch ($action){
 	 */
 	case "upgrade_all":
 		$update = get_option('update_plugins');
-		if (is_array($update->response)){
+		if (isset($update->response) && is_array($update->response)){
 			foreach($update->response as $file => $info){
 				if (!empty($info->package))
 					$upgrades[$file] = $info->package;
