@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4
+Version: 2.4.1
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -38,7 +38,7 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.4'; //not used
+	var $version='2.4.1'; //not used
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -952,12 +952,16 @@ if (function_exists('is_ssl')){
 		        $this->dprint("Running the unzip command.", 1);
 				exec("unzip -uovd $target $zipfile", $ignored, $return_val);
 				$rez = $return_val == 0;
+				
+				//Show the unzip output for debugging purposes 
 				$this->dprint("unzip returned value '$return_val'. unzip log : ");
-				if($this->debug) {
-					echo "<pre>";
-					print_r($ignored);
-					echo "</pre>";
-				};
+				$unzip_log = explode("\n",$ignored);
+				if (is_array($unzip_log)){
+					foreach ($unzip_log as $log_line){
+						$this->dprint("\t$log_line");
+					}
+				}
+								
 				if (!$rez){
 					return new WP_Error('zip_unzip_error', "exec('unzip') failed miserably.");
 				} else {
@@ -1457,7 +1461,7 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 		$this->dprint("About to extract '$filename'.");
 		$rez = $this->extractFile($filename, $type);
 		if (is_wp_error($rez)){
-			if ($rez->get_error_code() == 'zip_pclzip_unusable'){
+			if ( ($rez->get_error_code() == 'zip_pclzip_unusable') || ($rez->get_error_code() == 'zip_unsupported') ){
 				//Maybe we can try exec(unzip)...
 				if (!empty($type)){
 					$this->dprint("PclZip unavailable, using unzip.", 2);
@@ -1749,17 +1753,6 @@ ENCTYPE="multipart/form-data" method="post">
 	 * and how to use this plugin.
 	 */
 	function miniguide_page(){
-		/*
-		echo '<pre>';
-		
-		$plugins = get_plugins();
-		$active  = get_option( 'active_plugins' );
-		
-		print_r($plugins);
-		print_r($active);
-		
-		echo '</pre>';
-		*/
 ?>
 	<div class="wrap">
 
