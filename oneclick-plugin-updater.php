@@ -1467,6 +1467,10 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 					$this->dprint("PclZip unavailable, using unzip.", 2);
 					$rez = $this->extractFile($filename, $type, '', false);
 					//Let the error code "fall through" to the end of the function.
+				} else {
+					$this->dprint("Error : PclZip error and can't use 'unzip' with autodetection.", 3);
+					$rez = new WP_Error('zip_error', "Can't unzip the file. PclZip failed and 'unzip'
+						can't be used with autodetection.");
 				}
 				
 			}
