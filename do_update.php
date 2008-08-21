@@ -2,17 +2,20 @@
 /*
 	Update the plugin(s)
 */
+	/* 
+	Note: This script must be able to execute up to the plugin reactivation block 
+	without the OCPU plugin itself being active. This is because OCPU will be deactivated
+	when it updates itself along with other plugins (via "Upgrade All") and thus won't be available
+	in this script.
+	*/
+
 	//Let the main plugin file know it must load even though is_admin() will be false.
-	define('MUST_LOAD_OCPL', true);
+	define('MUST_LOAD_OCPU', true);
 
 	//Load the WordPress core & admin backend
 	require_once("../../../wp-config.php");
 	require_once(ABSPATH . "/wp-admin/admin.php");
 	
-	if(!current_user_can('edit_plugins')) {
-		wp_die('Oops, sorry, you are not authorized to fiddle with plugins!');
-	}
-
 	/**
 	 * Get the main parameters
 	 */
@@ -26,7 +29,7 @@
 	/**
 	 * Set general execution options
 	 */
-	if ($ws_pup->debug) {
+	if ( isset($ws_pup) && $ws_pup->debug ) {
 		error_reporting(E_ALL);
 		$ws_pup->dprint("Error reporting set to E_ALL.");
 	};	
@@ -35,7 +38,7 @@
 	@ignore_user_abort(true);
 	
 	/**
-	 * Check if the relevant directories are writable and if the user has the permissions
+	 * Determine which directories need to be writable and what user permissions are required
 	 */
 	 
 	//Which directory do I need to check?
@@ -46,7 +49,7 @@
 		$plugin_dir .= '/';
 	}
 	
-	$ws_pup->dprint("Plugin directory is '$plugin_dir'",0);
+	if (isset($ws_pup)) $ws_pup->dprint("Plugin directory is '$plugin_dir'",0);
 	if (function_exists('get_theme_root')){
 		$theme_dir = get_theme_root() . '/';
 	} else {
@@ -64,20 +67,6 @@
 		$check_dir = $theme_dir;
 		$what = 'theme';
 		$required_capability = 'edit_themes'; 
-	}
-	
-	if (!empty($check_dir)) {
-		$ws_pup->dprint("Checking to see if $check_dir is writable.");
-		
-		if (!$ws_pup->is__writable($check_dir)){
-			wp_die("The directory $check_dir is not writable by Wordpress.<br/>
-			You may need to assign permissions 666, 755 or even 777 to your \"{$what}s\" directory
-			(depending on your server configuration). For more information on what file permissions are and
-			how to change them read 
-			<a href='http://www.interspire.com/content/articles/12/1/FTP-and-Understanding-File-Permissions'>Understanding file permisssions</a>.","Plugin Folder is Not Writable");
-		} else {
-			$ws_pup->dprint('Okay.');
-		}
 	}
 	
 	/**
@@ -103,6 +92,8 @@
 			wp_redirect(get_option('siteurl').'/wp-admin/plugins.php?activate=true');
 			die();
 		}
+		
+		//If there is only one plugin to activate it can be done using the normal WP mechanism. 
 		if (count($to_activate)==1){
 			$redirect = get_option('siteurl')."/wp-admin/" 
 					.wp_nonce_url("plugins.php?action=activate&plugin=$plugin_file", 
@@ -114,7 +105,7 @@
 		}
 		
 		//Redirect to this URL if a plugin crashes on activation
-		$continue_url = get_option('siteurl').'/wp-content/plugins/'.$ws_pup->myfolder.
+		$continue_url = get_option('siteurl').'/wp-content/plugins/'.basename(dirname(__FILE__)).
 		 				'/do_update.php?action=reactivate_all';
 		
 		//Activate every plugin, more or less safely
@@ -127,6 +118,23 @@
 		}
 		wp_redirect(get_option('siteurl').'/wp-admin/plugins.php?activate=true');
 		die();
+	}
+	
+	/**
+	 * Check if the target directory is writable by PHP
+	 */
+	if (!empty($check_dir)) {
+		$ws_pup->dprint("Checking to see if $check_dir is writable.");
+		
+		if (!$ws_pup->is__writable($check_dir)){
+			wp_die("The directory $check_dir is not writable by Wordpress.<br/>
+			You may need to assign permissions 666, 755 or even 777 to your \"{$what}s\" directory
+			(depending on your server configuration). For more information on what file permissions are and
+			how to change them read 
+			<a href='http://www.interspire.com/content/articles/12/1/FTP-and-Understanding-File-Permissions'>Understanding file permisssions</a>.","Plugin Folder is Not Writable");
+		} else {
+			$ws_pup->dprint('Okay.');
+		}
 	}
 	
 	/**

@@ -10,7 +10,7 @@ input.installer-button {
 	.name.update-notification-enabled, 
 	.alternate .name.update-notification-enabled 
 {
-	background-image: url("update_enabled.gif");
+	background-image: url("images/update_enabled.gif");
 	background-position: top left;
 	background-repeat: repeat-y;
 }
@@ -19,7 +19,7 @@ input.installer-button {
 	.name.update-notification-disabled, 
 	.alternate .name.update-notification-disabled 
 {
-	background-image: url("update_disabled.gif");
+	background-image: url("images/update_disabled.gif");
 	background-position: top left;
 	background-repeat: repeat-y;
 }

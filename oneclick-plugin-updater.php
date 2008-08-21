@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.1
+Version: 2.4.2
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -14,7 +14,7 @@ It's GPL.
 */
 
 //This plugin only needs to run on the admin end.
-if (is_admin() || defined('MUST_LOAD_OCPL')) {
+if (is_admin() || defined('MUST_LOAD_OCPU')) {
 
 if (!function_exists('file_put_contents')){
 	//a simplified file_put_contents function for PHP 4
@@ -38,7 +38,6 @@ if (!defined('DIRECTORY_SEPARATOR')){
 if (!class_exists('ws_oneclick_pup')) {
 
 class ws_oneclick_pup {
-	var $version='2.4.1'; //not used
 	var $myfile='';
 	var $myfolder='';
 	var $mybasename='';
@@ -63,7 +62,6 @@ class ws_oneclick_pup {
 		$this->debug_log = array();
 		
 		$this->defaults = array(
-			'version' => $this->version,
 			'updater_module' => 'updater_plugin',
 			'enable_plugin_checks' => true,
 			'enable_wordpress_checks' => true,
@@ -98,6 +96,7 @@ class ws_oneclick_pup {
 		add_action('admin_print_scripts', array(&$this,'admin_print_scripts'));
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
+		add_filter('ozh_adminmenu_icon', array(&$this, 'ozh_adminmenu_icon'));
 		
 		//This is used for marking plugins with enabled update notifications
 		add_action('load-plugins.php', array(&$this,'check_update_notifications'));
@@ -266,7 +265,9 @@ class ws_oneclick_pup {
 	function add_admin_menus(){
 		add_submenu_page('plugins.php', 'Upgrade Settings', 'Upgrade Settings', 'edit_plugins', 
 			'plugin_upgrade_options', array(&$this, 'options_page'));
-		
+		if (current_user_can('edit_plugins')) 
+			add_filter('plugin_action_links', array(&$this, 'plugin_action_links'), 10, 2);
+
 		//only privileged users can install plugins
 		add_submenu_page('plugins.php', 'Install New', 'Install a Plugin', 'edit_plugins', 
 				'install_plugin', array(&$this, 'installer_page'));
@@ -277,6 +278,20 @@ class ws_oneclick_pup {
 			add_submenu_page('index.php', 'One Click Plugin Updater Miniguide', 'One Click Updater Miniguide',
 				 'edit_plugins', 'one_click_miniguide', array(&$this, 'miniguide_page'));
 		}
+	}
+	
+	function ozh_adminmenu_icon($hook){
+		$base = get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/images/';
+		
+		
+		if ($hook == 'install_theme')
+			return $base."theme_install.png";
+		elseif ($hook == 'install_plugin') 
+			return $base."plugin_go.png";
+		elseif ($hook == 'plugin_upgrade_options')
+			return $base."plugin_upgrade_options.png";
+			
+		return $hook;
 	}
 	
 	function admin_head(){
@@ -328,6 +343,21 @@ function hide_permanent_notice(notice_key){
 <?php	 
 	}
 	
+  /**
+   * ws_oneclick_pup::plugin_action_links()
+   * Handler for the 'plugin_action_links' hook. Adds a "Settings" link to this plugin's entry
+   * on the plugin list.
+   *
+   * @param array $links
+   * @param string $file
+   * @return array 
+   */
+	function plugin_action_links($links, $file) {
+		if ($file == $this->mybasename)
+			$links[] = "<a href='plugins.php?page=plugin_upgrade_options'>" . __('Settings') . "</a>";
+		return $links;
+	}
+	
 	function admin_foot(){
 		/*
 		echo '<pre>';
@@ -336,7 +366,7 @@ function hide_permanent_notice(notice_key){
 		$update  = get_option( 'update_plugins' );
 		
 		//print_r($plugins);
-		print_r($update);
+		//print_r($update);
 		
 		echo '</pre>';
 		//*/
