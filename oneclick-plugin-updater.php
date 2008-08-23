@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.2
+Version: 2.4.3
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -1451,20 +1451,26 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 			$contents = $this->download_page($url, 300);
 			if ($contents){
 				$this->dprint("Downloaded ".strlen($contents)." bytes.", 1);
-				$filename = tempnam("/tmp", "PLG");
+				
+				//First try : save in the plugin's own directory (and don't use tempnam() - buggy sometimes).
+				$filename=dirname(__FILE__)."/plg".md5(microtime().'|'.rand(0,1000000)).".zip";
 				$this->dprint("Will save the new version archive (zip) to a temporary file '$filename'.");
 				$handle = @fopen($filename, "wb");
+				
 				if(!$handle) {
 					$this->dprint("Warning: couldn't create a temporary file at '$filename'.", 2);
-					//try to use the plugin's folder instead
-					$filename=tempnam(dirname(__FILE__), "PLG");
+
+					//Second try : use the default (hopefully) system directory
+					$filename = tempnam("/tmp", "PLG");
 					$this->dprint("Using alternate temporary file '$filename'.", 1);
 					$handle = fopen($filename, "wb");
+					
 					//That didn't work too, try one last time and don't use tempnam (buggy on some systems).
 					if(!$handle) {
 						$this->dprint("Warning: couldn't create a temporary file at '$filename'.", 2);
-						//try to use the plugin's folder instead
-						$filename=dirname(__FILE__)."/plg".rand(0,1000000).".zip";
+
+						//Last try : the plugin's directory, but with tempnam() 
+						$filename=tempnam(dirname(__FILE__), "PLG");
 						$this->dprint("Last attempt : using alternate temporary file '$filename'.", 1);
 						$handle = fopen($filename, "wb");
 					}
