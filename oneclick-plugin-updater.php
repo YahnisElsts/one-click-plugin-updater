@@ -14,7 +14,8 @@ It's GPL.
 */
 
 //This plugin only needs to run on the admin end.
-if (is_admin() || defined('MUST_LOAD_OCPU')) {
+//TODO: figure out why this optimization doesn't work on some systems. PHP issue?
+//if (is_admin() || defined('MUST_LOAD_OCPU')) {
 
 if (!function_exists('file_put_contents')){
 	//a simplified file_put_contents function for PHP 4
@@ -846,6 +847,15 @@ if (function_exists('is_ssl')){
 		update_option( 'update_core', $new_option );
 	}
 	
+  /**
+   * ws_oneclick_pup::download_page()
+   * Download and return the page/file from the provided URL. Tries three different techniques - cURL, 
+   * Snoopy and fopen (in that order). 
+   *
+   * @param string $url
+   * @param integer $timeout
+   * @return string or FALSE if the download fails.
+   */
 	function download_page($url, $timeout=120){
 		$this->dprint("Downloading '$url'...", 1);
 		
@@ -861,9 +871,9 @@ if (function_exists('is_ssl')){
 			curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)');
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
 		
-			@curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 			/* Currently redirection support is not absolutely necessary, so it's OK
 			if this line fails due to safemode restrictions */
+			@curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 			
 			curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
 			
@@ -1991,10 +2001,10 @@ ENCTYPE="multipart/form-data" method="post">
     
 }//class ends here
 
-} // if class_exists... ends here
+} // if !class_exists... ends here
 
 $ws_pup = new ws_oneclick_pup();
 
-}
+//}
 
 ?>
