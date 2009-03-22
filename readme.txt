@@ -2,8 +2,8 @@
 Contributors: whiteshadow
 Tags: plugin, notification, upload, files, installation, admin, update, upgrade, update notification, automation
 Requires at least: 2.3
-Tested up to: 2.6.2
-Stable tag: 2.4.4
+Tested up to: 2.7.1
+Stable tag: 2.4.5
 
 Provides single-click plugin upgrades in WP 2.3 and up, visually marks plugins that have update notifications enabled, allows to easily install new plugins and themes, lets you control if and when WordPress checks for updates... and so on.
 
