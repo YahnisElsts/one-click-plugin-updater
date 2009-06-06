@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.6
+Version: 2.4.7
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -447,8 +447,10 @@ if (function_exists('is_ssl')){
 			if (name_cell){
 				if (update_enabled_plugins[name_cell.text()]) {
 					$j(this).addClass('update-notification-enabled');
+					$j(this).find('th').addClass('update-notification-enabled');
 				} else {
 					$j(this).addClass('update-notification-disabled');
+					$j(this).find('th').addClass('update-notification-disabled');
 				};
 			}
 		});
@@ -1881,7 +1883,7 @@ ENCTYPE="multipart/form-data" method="post">
 		$notices = get_option ('permanent_admin_notices');
 		if (empty($notices)) return;
 		foreach ($notices as $key=>$notice){
-			echo "<div class='plugin-update' id='permanent-notice-$key'>";
+			echo "<div class='ws-plugin-update' id='permanent-notice-$key'>";
 			echo $notice;
 			echo " <small><a href='javascript:hide_permanent_notice(\"$key\")'>[hide]</a></small>";
 			echo "</div>";
@@ -1931,7 +1933,7 @@ ENCTYPE="multipart/form-data" method="post">
 		}
 		
 		if (count($update_list)>0){
-			echo '	<div class="plugin-update">';
+			echo '	<div class="ws-plugin-update">';
 			$link =  get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
 					'/do_update.php?action=upgrade_all';
 			$link = wp_nonce_url($link, 'upgrade_all');

@@ -8,7 +8,8 @@ input.installer-button {
 
 .update-notification-enabled, 
 	.name.update-notification-enabled, 
-	.alternate .name.update-notification-enabled 
+	.alternate .name.update-notification-enabled,
+	.active.update-notification-enabled 
 {
 	background-image: url("images/update_enabled.gif");
 	background-position: top left;
@@ -46,4 +47,18 @@ td.name {
 	padding: 2px 2px 2px 2px;
 	margin-bottom: 4px;
 	margin-top: 2px;
+}
+
+.ws-plugin-update {
+	line-height: 29px;
+	font-size: 12px;
+	text-align: center;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-top-width: 1px;
+	border-top-style: solid;
+}
+
+.ws-plugin-update a {
+	font-size: 1.1em;
 }
