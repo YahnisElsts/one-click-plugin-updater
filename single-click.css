@@ -57,6 +57,9 @@ td.name {
 	border-bottom-style: solid;
 	border-top-width: 1px;
 	border-top-style: solid;
+	
+	background-color : #FFFBE4;
+	border-color : #DFDFDF;
 }
 
 .ws-plugin-update a {

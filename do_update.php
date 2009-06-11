@@ -165,7 +165,7 @@ switch ($action){
 	 * Update all plugins 
 	 */
 	case "upgrade_all":
-		$update = get_option('update_plugins');
+		$update =  $ws_pup->get_update_plugins();
 		if (isset($update->response) && is_array($update->response)){
 			foreach($update->response as $file => $info){
 				if (!empty($info->package))
@@ -220,7 +220,12 @@ switch ($action){
 			}
 		}
 		// Force refresh of plugin update information
-		delete_option('update_plugins');
+		if ( function_exists('delete_transient') ){
+			delete_transient('update_plugins');
+		} else {
+			delete_option('update_plugins');
+		}
+		
 		
 		$ws_pup->dprint("Main loop finished.");
 		/**
@@ -304,11 +309,11 @@ switch ($action){
 			$ws_pup->dprint("File removed OK.",1);
 		}
 		//remove the deleted plugin from the list of updates (if present)
-		$update = get_option( 'update_plugins' );
+		$update = $ws_pup->get_update_plugins();
 		if (!empty($update->response) && isset($update->response[$plugin_file])){
 			$ws_pup->dprint("Removing an update notification for this plugin.",1);
 			unset($update->response[$plugin_file]);
-			update_option('update_plugins', $update);
+			$ws_pup->set_update_plugins( $update );
 		}
 		
 		if (!$ws_pup->debug){

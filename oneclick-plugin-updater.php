@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.7
+Version: 2.4.8
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -302,11 +302,6 @@ class ws_oneclick_pup {
 	}
 	
 	function admin_head(){
-		//In this version the theme is also used in other pages.
-		if ( (stripos($_SERVER['REQUEST_URI'], 'plugins.php')===false) &&
-			 (stripos($_SERVER['REQUEST_URI'], 'themes.php')===false) )
-			return;
-		
 		echo "<link rel='stylesheet' href='";
 		echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
 		echo "' type='text/css' />";
@@ -368,15 +363,11 @@ function hide_permanent_notice(notice_key){
 	function admin_foot(){
 		/*
 		echo '<pre>';
-		
-		//$plugins = get_plugins();
-		$update  = get_option( 'update_plugins' );
-		
-		//print_r($plugins);
-		//print_r($update);
-		
+		//print_r($this->get_update_plugins());
 		echo '</pre>';
 		//*/
+		
+		
 		
 		if (!empty($_GET['page'])) return; //Don't run on plugin subpages
 		
@@ -386,7 +377,7 @@ function hide_permanent_notice(notice_key){
 		if ( (stristr($_SERVER['REQUEST_URI'], 'plugins.php')!==false) ) {
 			
 			$plugins=get_plugins();
-			$update = get_option('update_plugins');
+			$update = $this->get_update_plugins();
 			$active  = get_option('active_plugins' );
 			
 			//How many active plugins there are
@@ -443,14 +434,14 @@ if (function_exists('is_ssl')){
 	echo "\t\tplugin_tr_expr = '#plugins tr'";
 } ?>		
 		$j(plugin_tr_expr).each(function (x) {
-			name_cell = $j(this).find('.name');
+			name_cell = $j(this).find('.name, .plugin-title');
 			if (name_cell){
 				if (update_enabled_plugins[name_cell.text()]) {
-					$j(this).addClass('update-notification-enabled');
-					$j(this).find('th').addClass('update-notification-enabled');
+					$j(this).addClass('update-notification-enabled').find('th').addClass('update-notification-enabled');
+					$j(this).next('.second').addClass('update-notification-enabled').find('td:first').addClass('update-notification-enabled');
 				} else {
-					$j(this).addClass('update-notification-disabled');
-					$j(this).find('th').addClass('update-notification-disabled');
+					$j(this).addClass('update-notification-disabled').find('th').addClass('update-notification-disabled');
+					$j(this).next('.second').addClass('update-notification-disabled').find('td:first').addClass('update-notification-disabled');
 				};
 			}
 		});
@@ -558,7 +549,7 @@ if (function_exists('is_ssl')){
 			$plugin_data = $new_plugin_data;
 		}
 		
-		$current = get_option( 'update_plugins' );
+		$current = $this->get_update_plugins();
 		if ( !isset( $current->response[ $file ] ) ){
 			return false;
 		}
@@ -584,7 +575,7 @@ if (function_exists('is_ssl')){
 		//Add nonce verification for security
 		$autoupdate_url = wp_nonce_url($autoupdate_url, 'update_plugin-'.$file);
 	
-		echo "<tr><td colspan='5' class='plugin-update'>";
+		echo "<tr class='plugin-update-tr'><td colspan='5' class='plugin-update'><div class='update-message'>";
 		if ( !current_user_can('edit_plugins') ) {
 			printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a>.'), 
 				$plugin_data['Name'], $r->url, $r->new_version);
@@ -595,7 +586,7 @@ if (function_exists('is_ssl')){
 			printf( __('There is a new version of %1$s available. <a href="%2$s">Download version %3$s here</a> or <a href="%4$s">upgrade automatically</a>.'), 
 				$plugin_data['Name'], $r->url, $r->new_version, $autoupdate_url );
 		}
-		echo "</td></tr>";
+		echo "</div></td></tr>";
 	}
 	
 	/**
@@ -628,6 +619,22 @@ if (function_exists('is_ssl')){
 		return $new_ver;	
 	}
 	
+	function get_update_plugins(){
+		if ( function_exists('get_transient') ){
+			return get_transient( 'update_plugins' );
+		} else {
+			return get_option( 'update_plugins' );
+		}
+	}
+	
+	function set_update_plugins( $data ){
+		if ( function_exists('set_transient') ){
+			return set_transient( 'update_plugins', $data );
+		} else {
+			return update_option( 'update_plugins', $data );
+		}
+	}
+	
 	function check_update_notifications(){
 		global $wp_version;
 		@set_time_limit(300);
@@ -642,17 +649,20 @@ if (function_exists('is_ssl')){
 		$plugins = get_plugins();
 		$orig_plugins = $plugins;
 		$active  = get_option( 'active_plugins' );
-		$current = get_option( 'update_plugins' );
+		$current = $this->get_update_plugins();
 		
 		$plugin_changed = empty($current);
 		
 		foreach ( $plugins as $file => $p ) {
-			$plugins[$file]['Version']='0'; //fake zero version 
+			$plugins[$file]['Version']='0.0'; //fake zero version
 			
-			if( !isset($this->update_enabled->status[$file]) ) {
-				$this->update_enabled->status[$file]=false; //not known yet, assume false
+			//Use update info provided by WP, if available
+			if ( isset( $current->status->response[$file] ) ){
+				$this->update_enabled->status[$file] = true;
+			//New plugin?
+			} else if( !isset($this->update_enabled->status[$file]) ) {
+				$this->update_enabled->status[$file] = false; //Yep, assume no notifications
 				$plugin_changed = true;
-				continue;
 			}
 		}
 		//Remove information about deleted plugins
@@ -664,6 +674,8 @@ if (function_exists('is_ssl')){
 				$plugin_changed = true; 
 			}
 		}
+		
+		update_option( 'update_enabled_plugins', $this->update_enabled);
 		
 		//$plugin_changed=true; //debug - force status update
 		if (
@@ -685,7 +697,7 @@ if (function_exists('is_ssl')){
 		$http_request .= "Host: api.wordpress.org\r\n";
 		$http_request .= "Content-Type: application/x-www-form-urlencoded; charset=" . get_option('blog_charset') . "\r\n";
 		$http_request .= "Content-Length: " . strlen($request) . "\r\n";
-		$http_request .= 'User-Agent: WordPress/2.3; http://not-a-real-domain.com/' . "\r\n";
+		$http_request .= 'User-Agent: WordPress/2.8; http://example.com/' . "\r\n";
 		$http_request .= "\r\n";
 		$http_request .= $request;
 	
@@ -732,7 +744,7 @@ if (function_exists('is_ssl')){
 	
 		$plugins = get_plugins();
 		$active  = get_option( 'active_plugins' );
-		$current = get_option( 'update_plugins' );
+		$current = $this->get_update_plugins();
 	
 		$new_option = '';
 		$new_option->last_checked = time();
@@ -745,11 +757,16 @@ if (function_exists('is_ssl')){
 				$plugin_changed = true;
 				continue;
 			}
-	
-			if ( strval($current->checked[ $file ]) !== strval($p['Version']) )
-				$plugin_changed = true;
+			
+			if ( function_exists('version_compare') ) {
+				if ( version_compare( strval($current->checked[ $file ]), strval($p['Version']), '>' ) ) {
+					$plugin_changed = true;
+				}
+			}
 		}
-	
+		
+		//$plugin_changed = true; //debug
+		
 		if (
 			isset( $current->last_checked ) &&
 			$this->options['plugin_check_interval'] > ( time() - $current->last_checked ) &&
@@ -760,18 +777,19 @@ if (function_exists('is_ssl')){
 		$to_send->plugins = $plugins;
 		$to_send->active = $active;
 		$send = serialize( $to_send );
-	
 		$request = 'plugins=' . urlencode( $send );
+		
 		$http_request  = "POST /plugins/update-check/1.0/ HTTP/1.0\r\n";
 		$http_request .= "Host: api.wordpress.org\r\n";
-		$http_request .= "Content-Type: application/x-www-form-urlencoded; charset=" . get_option('blog_charset') . "\r\n";
-		$http_request .= "Content-Length: " . strlen($request) . "\r\n";
 		
 		if ($this->options['anonymize']) {
-			$http_request .= 'User-Agent: WordPress/2.3; http://not-really-a-domain.com/' . "\r\n";
+			$http_request .= 'User-Agent: WordPress/2.8; http://example.com/' . "\r\n";
 		} else {
 			$http_request .= 'User-Agent: WordPress/' . $wp_version . '; ' . get_bloginfo('url') . "\r\n";
 		}
+		
+		$http_request .= "Content-Type: application/x-www-form-urlencoded; charset=" . get_option('blog_charset') . "\r\n";
+		$http_request .= "Content-Length: " . strlen($request) . "\r\n";
 		
 		$http_request .= "\r\n";
 		$http_request .= $request;
@@ -797,7 +815,7 @@ if (function_exists('is_ssl')){
 			update_option( 'update_enabled_plugins', $this->update_enabled);
 		}
 	
-		update_option( 'update_plugins', $new_option );
+		$this->set_update_plugins ( $new_option );
 	}
 	
 	/**
@@ -1898,7 +1916,7 @@ ENCTYPE="multipart/form-data" method="post">
 		//Only administrators will see the notices
 		if (!current_user_can('edit_plugins')) return;
 		
-		$current = get_option( 'update_plugins' );
+		$current = $this->get_update_plugins();
 
 		if ( empty( $current->response ) ) return; // No plugin updates available
 		
