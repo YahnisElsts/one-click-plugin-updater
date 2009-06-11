@@ -620,11 +620,23 @@ if (function_exists('is_ssl')){
 	}
 	
 	function get_update_plugins(){
+		$plugins = get_plugins();
+		
 		if ( function_exists('get_transient') ){
-			return get_transient( 'update_plugins' );
+			$current = get_transient( 'update_plugins' );
 		} else {
-			return get_option( 'update_plugins' );
+			$current = get_option( 'update_plugins' );
 		}
+		$rez = $current;
+		
+		//remove missing plugins
+		foreach ( $current->response as $plugin_file => $update_data ) {
+			if ( empty( $plugins[$plugin_file] ) ){
+				unset( $rez->response[$plugin_file]  );
+			}
+		}
+		
+		return $rez;
 	}
 	
 	function set_update_plugins( $data ){
