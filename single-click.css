@@ -1,0 +1,67 @@
+input.installer-button {
+	font-size: 1.4em;
+}
+
+.plugins-overview {
+	font-size: 1.1em;
+}
+
+.update-notification-enabled, 
+	.name.update-notification-enabled, 
+	.alternate .name.update-notification-enabled,
+	.active.update-notification-enabled 
+{
+	background-image: url("images/update_enabled.gif");
+	background-position: top left;
+	background-repeat: repeat-y;
+}
+
+.update-notification-disabled, 
+	.name.update-notification-disabled, 
+	.alternate .name.update-notification-disabled 
+{
+	background-image: url("images/update_disabled.gif");
+	background-position: top left;
+	background-repeat: repeat-y;
+}
+
+td.name {
+	padding-left: 8px;
+}
+
+.ws_error {
+	color: red;
+	font-weight: bold;
+}
+
+.ws_warning {
+	color: orange;
+}
+
+.ws_debug {
+	color: gray;
+}
+
+.ws_installer_log {
+	display:none;
+	padding: 2px 2px 2px 2px;
+	margin-bottom: 4px;
+	margin-top: 2px;
+}
+
+.ws-plugin-update {
+	line-height: 29px;
+	font-size: 12px;
+	text-align: center;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-top-width: 1px;
+	border-top-style: solid;
+	
+	background-color : #FFFBE4;
+	border-color : #DFDFDF;
+}
+
+.ws-plugin-update a {
+	font-size: 1.1em;
+}
