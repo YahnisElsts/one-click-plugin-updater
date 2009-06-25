@@ -222,9 +222,8 @@ switch ($action){
 		// Force refresh of plugin update information
 		if ( function_exists('delete_transient') ){
 			delete_transient('update_plugins');
-		} else {
-			delete_option('update_plugins');
 		}
+		delete_option('update_plugins');
 		
 		
 		$ws_pup->dprint("Main loop finished.");
