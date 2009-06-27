@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.11
+Version: 2.4.12
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -32,6 +32,15 @@ if (!function_exists('file_put_contents')){
 	}
 }
 
+//Make sure some useful constants are defined
+if ( ! defined( 'WP_CONTENT_URL' ) )
+	define( 'WP_CONTENT_URL', get_option( 'siteurl' ) . '/wp-content' );
+if ( ! defined( 'WP_CONTENT_DIR' ) )
+	define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
+if ( ! defined( 'WP_PLUGIN_URL' ) )
+	define( 'WP_PLUGIN_URL', WP_CONTENT_URL. '/plugins' );
+if ( ! defined( 'WP_PLUGIN_DIR' ) )
+	define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
 if (!defined('DIRECTORY_SEPARATOR')){
 	define('DIRECTORY_SEPARATOR', '/');
 }
@@ -103,7 +112,11 @@ class ws_oneclick_pup {
 		add_action('admin_print_scripts', array(&$this,'admin_print_scripts'));
 		add_action('admin_footer', array(&$this,'admin_foot'));
 		add_action('admin_menu', array(&$this, 'add_admin_menus'));
+		
 		add_filter('ozh_adminmenu_icon', array(&$this, 'ozh_adminmenu_icon'));
+		add_filter('ozh_adminmenu_icon_install_theme', array(&$this, 'ozh_adminmenu_icon'));
+		add_filter('ozh_adminmenu_icon_install_plugin', array(&$this, 'ozh_adminmenu_icon'));
+		add_filter('ozh_adminmenu_icon_plugin_upgrade_options', array(&$this, 'ozh_adminmenu_icon'));
 		
 		//This is used for marking plugins with enabled update notifications
 		add_action('load-plugins.php', array(&$this,'check_update_notifications'));
@@ -288,8 +301,7 @@ class ws_oneclick_pup {
 	}
 	
 	function ozh_adminmenu_icon($hook){
-		$base = get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/images/';
-		
+		$base = WP_PLUGIN_URL.'/'.$this->myfolder.'/images/';
 		
 		if ($hook == 'install_theme')
 			return $base."theme_install.png";
@@ -303,11 +315,11 @@ class ws_oneclick_pup {
 	
 	function admin_head(){
 		echo "<link rel='stylesheet' href='";
-		echo get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.'/single-click.css';
+		echo WP_PLUGIN_URL.'/'.$this->myfolder.'/single-click.css';
 		echo "' type='text/css' />";
 		
 		if ($this->options['hide_update_count_blurb']){
-			echo "<style type='text/css'>#update-plugins { display: none ! important; }</style>";
+			echo "<style type='text/css'>#update-plugins, .plugin-count { display: none ! important; }</style>";
 		}
 	}
 	
@@ -547,6 +559,9 @@ if (function_exists('is_ssl')){
 		//the second parameter is only set in 2.6 and up
 		if ($new_plugin_data) {
 			$plugin_data = $new_plugin_data;
+		} else {
+			$plugins = get_plugins();
+			$plugin_data = $plugins[$file];
 		}
 		
 		$current = $this->get_update_plugins();
@@ -559,9 +574,20 @@ if (function_exists('is_ssl')){
 		if ($this->options['hide_notifications_for_inactive'] && !in_array($file, $active)){
 			return false;
 		}
-		
 	
 		$r = $current->response[ $file ];
+		
+		//Workaround. Don't show the update notification if the new version is the same as the old one.
+		if ( function_exists('version_compare') ){
+			if ( version_compare($plugin_data['Version'], $r->new_version,'=') ){
+				return false;
+			}
+		} else {
+			if ( $plugin_data['Version'] == $r->new_version ){
+				return false;
+			}
+		}
+		
 		$autoupdate_url=get_option('siteurl').'/wp-content/plugins/'.$this->myfolder.
 		 '/do_update.php?action=update_plugin&plugin_file='.urlencode($file);
 		if(!empty($r->package)){
@@ -760,21 +786,25 @@ if (function_exists('is_ssl')){
 		$active  = get_option( 'active_plugins' );
 		$current = $this->get_update_plugins();
 	
-		$new_option = '';
+		$new_option = new stdClass;
 		$new_option->last_checked = time();
+		$new_option->checked = array();
 	
 		$plugin_changed = false;
+		//Check for plugins that have a different ver. number than the last time.
 		foreach ( $plugins as $file => $p ) {
 			$new_option->checked[ $file ] = $p['Version'];
-	
-			if ( !isset( $current->checked[ $file ] ) ) {
-				$plugin_changed = true;
-				continue;
-			}
 			
-			if ( function_exists('version_compare') ) {
-				if ( version_compare( strval($current->checked[ $file ]), strval($p['Version']), '>' ) ) {
+			if ( !isset( $current->checked[ $file ] ) || strval($current->checked[ $file ]) !== strval($p['Version']) )
+				$plugin_changed = true;
+		}
+		
+		//Check for deleted plugins
+		if ( isset ( $current->response ) && is_array( $current->response ) ) {
+			foreach ( $current->response as $plugin_file => $update_details ) {
+				if ( ! isset($plugins[ $plugin_file ]) ) {
 					$plugin_changed = true;
+					break;
 				}
 			}
 		}
@@ -827,6 +857,8 @@ if (function_exists('is_ssl')){
 				$this->update_enabled->status[$file]=true;
 			}
 			update_option( 'update_enabled_plugins', $this->update_enabled);
+		} else {
+			$new_option->response = array();
 		}
 	
 		$this->set_update_plugins ( $new_option );
