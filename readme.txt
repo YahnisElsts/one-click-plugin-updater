@@ -52,3 +52,197 @@ To install the plugin follow these steps :
 1. Activate the plugin through the 'Plugins' menu in WordPress
 
 That's it.
+
+== Changelog ==
+
+= 2.4.13 =
+* Fix (probably) a rare issue where the update would fail with "Invalid argument supplied to foreach()..."
+
+= 2.4.12 =
+* The correct menu icons now show up in the Ozh's Admin Menu. Previously the updater plugin would have the default icon due to a (still unresolved) bug in Ozh's plugin.
+* Hiding the update count blurb thingy works again.
+
+= 2.4.11 =
+* *There are no release notes for this version*
+
+= 2.4.10 =
+* Maybe fix a situation where redundant update notifications would still show up after an update.
+
+= 2.4.9 =
+* Fix some possible post-upgrade issues.
+
+= 2.4.8 =
+* Partial compatibility with WP 2.8
+* Finally fixed mixed update highlights. Now they work 100% correctly at least in WP 2.8.
+* Fixed a mysterious issue where some update notifications wouldn't show up.
+* Fixed the bug where updates would show for deleted plugins.
+
+= 2.4.7 =
+* Fix a conflict with Ozh's "Better Plugin Page"
+* Fix highlight bars not displaying for active plugins (finally)
+
+= 2.4.6 =
+* (Hopefully) Fix problems with internal settings not being initialized properly.
+
+= 2.4.5 =
+* Initialize 'update\_plugins\_enabled' properly.
+* Note : This plugin is largely obsolete. The update is provided for the benefit of people who still use it for one reason or another.
+
+= 2.4.4 =
+* Now only admins will see global plugin update notifications.
+
+= 2.4.3 =
+* Another attempt to fix permission issues with temporary files. Gah.
+* Grr.
+
+= 2.4.2 =
+* Fix : Fatal error when using "Upgrade All" to update this plugin and another active plugin(s).
+* New : Menu icons for Ozh's Admin Dropdown Menu. I used icons from the famous FamFamFam; modified some of them.
+
+= 2.4.1 =
+* Use the linux command "unzip" when PclZip doesn't recognize the .zip file. Previously unzip was used only when *PclZip wasn't available*.
+
+= 2.4 =
+* New : Disable update notifications for inactive plugins.
+* New : Hide update count pop-up/blurb thing in the dashboard menu.
+(hopefully) Fix : Some cases of "can't create temporary file" errors.
+* Fix : Now the plugin will only load in the admin backend, not on every page load. A tiny performance improvement.
+* Internal : Added a few more comments and cleaned up some orphaned code (some still left).
+
+= 2.3 =
+* New : You can turn off plugin highlights.
+* Internal : "Permanent notices" and related functions. To be used later.
+* Minor fix : make the activation hook work when called from plugins\_loaded
+
+= 2.2.9 =
+* Update the after\_plugin\_row hook to use the second parameter ($plugin\_data) introduced in WP 2.6
+
+= 2.2.8 =
+* *There are no release notes for this version*
+
+= 2.2.7 =
+* Fix some DOM expression stuff for both 2.5 and 2.6 compatibility.
+
+= 2.2.6 =
+* Fix: stristr() syntax error in main file.
+* Fix: "Delete" links not appearing for themes in 2.6.
+
+= 2.2.5 =
+* Minor modifications for tentative WP 2.6 compatibility (WorksForMe TM)
+
+= 2.2.4 =
+* Silly PHP. Making realpath() inconsistent. Phe. 
+* Removed some references to DIRECTORY\_SEPARATOR.
+
+= 2.2.3 =
+* Fix the "Delete" link not appearing on non-English blogs.
+
+= 2.2.2 =
+* *There are no release notes for this version*
+
+= 2.2.1 =
+* Fix the miniguide option.
+* Fixed two silly bugs.
+* Fixed jQuery not properly added to the plugins/themes pages.
+* Removed A forgotten debug output statement.
+
+= 2.2 =
+* *** Major update ***
+* New FireFox extension. Not backwards compatible anymore.
+* Can delete themes.
+* Some bugs fixed.
+* Improved security.
+* Global update notifications now *really* "global", i.e. updated on any page, not just the Plugins tab.
+* Stuff I've already forgotten about.
+* Fix a typo in readme.txt
+* Fix handleOneClick(). damn!
+
+= 2.1.2 =
+* WP 2.5.1 compatibility note. Probably nothing more.
+
+= 2.1.1 =
+* Hopefully fix: "Update available" messages still showing after a plugin is upgraded.
+* Fix a possible bug with update notices disappearing.
+
+= 2.1 =
+* New: Global plugin update notices.
+* New: Ability to delete plugins (experimental).
+
+= 2.0.9 =
+* (Hopefully) Fix: PclZip platform independence bug.
+
+= 2.0.8 =
+* *There are no release notes for this version*
+
+= 2.0.7 =
+* *There are no release notes for this version*
+
+= 2.0.6 =
+* Fix: The wrong plugin getting activated when upgrading many plugins of which only one is active.
+* Fix: Wrong plugin getting activated (see prev. msg.).
+* Fix: Update notice remains for deleted plugins.
+* Fix: Not checking for enabled notifications when a plugin is deleted.
+
+= 2.0.5 =
+* Temporary workaround for the is\_dir() bug.
+
+= 2.0.4 =
+* Minor bugfixes + a hidden feature
+
+= 2.0.3 =
+* Fix: file\_put\_contents missing in PHP 4
+
+= 2.0.2 =
+* Fix typo
+* Fix: trying to create a directory with no name.
+* Fix: WP 2.3.x has no "upgrade now" link.
+* Added: More debug messages.
+* Damn you WP, foiled again!
+
+= 2.0.1 =
+* *There are no release notes for this version*
+
+= 2.0 =
+* Lots of new features and bugs!
+* Hackety-hack!
+* Fixed tags in readme.txt and such.
+
+= 1.1.7 =
+* Fix problems caused by wordpress.org structural change.
+
+= 1.1.6 =
+* Alternate temporary file handling - use the plugin's directory.
+
+= 1.1.5 =
+* PclZip error reporting fix + debug mode
+
+= 1.1.3 =
+* *There are no release notes for this version*
+
+= 1.1.2 =
+* Bugfix : unzip -fod ...
+
+= 1.1.1 =
+* *There are no release notes for this version*
+
+= 1.1 =
+* New feature : Mark plugins with update notifications enabled.
+
+= 1.0.5 =
+* Now works in Internet Explorer.
+
+= 1.0.4 =
+* *There are no release notes for this version*
+
+= 1.0.3 =
+* *There are no release notes for this version*
+
+= 1.0.2 =
+* *There are no release notes for this version*
+
+= 1.0.1 =
+* *There are no release notes for this version*
+
+= 1.0 =
+* *There are no release notes for this version*
+
