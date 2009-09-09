@@ -43,18 +43,14 @@
 	 
 	//Which directory do I need to check?
 	$check_dir = '';
-	$plugin_dir = realpath(ABSPATH . PLUGINDIR . '/'); 
+	$plugin_dir = realpath( WP_PLUGIN_DIR . DIRECTORY_SEPARATOR); 
 	//It seems that on some systems realpath() will strip out the last slash, so I'll add it here. 
-	if ( (substr($plugin_dir,-1)!='/') && (substr($plugin_dir,-1)!='\\') ){
-		$plugin_dir .= '/';
+	if ( (substr($plugin_dir,-1) != DIRECTORY_SEPARATOR) && (substr($plugin_dir,-1)!='\\') ){
+		$plugin_dir .= DIRECTORY_SEPARATOR;
 	}
 	
 	if (isset($ws_pup)) $ws_pup->dprint("Plugin directory is '$plugin_dir'",0);
-	if (function_exists('get_theme_root')){
-		$theme_dir = get_theme_root() . '/';
-	} else {
-		$theme_dir = realpath(ABSPATH . 'wp-content/themes').'/';
-	}
+	$theme_dir = get_theme_root() . DIRECTORY_SEPARATOR;
 	 
 	$what = 'thing'; //used in error messages - theme or plugin
 	$required_capability = 'edit_plugins'; //permission check later

@@ -3,7 +3,7 @@
 Plugin Name: One Click Plugin Updater
 Plugin URI: http://w-shadow.com/blog/2007/10/19/one-click-plugin-updater/
 Description: Upgrade plugins with a single click, install new plugins or themes from an URL or by uploading a file, see which plugins have update notifications enabled, control how often WordPress checks for updates, and more. 
-Version: 2.4.13
+Version: 2.4.14
 Author: Janis Elsts
 Author URI: http://w-shadow.com/blog/
 */
@@ -1044,12 +1044,12 @@ if (function_exists('is_ssl')){
     	//Do some early autodetection
     	if(empty($target)){
 			if ($type == 'plugin'){
-				$target = ABSPATH . PLUGINDIR . DIRECTORY_SEPARATOR;
+				$target = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR;
 			} else if ($type == 'theme'){
 				if (function_exists('get_theme_root')){
 					$target = get_theme_root() . DIRECTORY_SEPARATOR;
 				} else {
-					$target = ABSPATH . 'wp-content'.DIRECTORY_SEPARATOR.'themes'.DIRECTORY_SEPARATOR;
+					$target = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR;
 				} 
 			}
 		}
@@ -1129,7 +1129,7 @@ if (function_exists('is_ssl')){
 							$magic_descriptor['file_header'] = $plugin;
 							$magic_descriptor['type'] = $type;
 							$magic_descriptor['plugin_file'] = $file_info['filename'];
-							$target = ABSPATH . PLUGINDIR . DIRECTORY_SEPARATOR;
+							$target = WP_PLUGIN_DIR . DIRECTORY_SEPARATOR;
 							break;
 						}
 						
@@ -1139,7 +1139,7 @@ if (function_exists('is_ssl')){
 							$type = 'theme';
 							$magic_descriptor['file_header'] = $theme;
 							$magic_descriptor['type'] = $type;
-							$target = ABSPATH . 'wp-content/themes/';
+							$target = get_theme_root() . DIRECTORY_SEPARATOR;
 							break;
 						}
 						
@@ -1621,12 +1621,12 @@ action="<?php echo $_SERVER['PHP_SELF']; ?>?page=plugin_upgrade_options">
 		//Some quick status-checks based on type
 		if ('autodetect' != $type){
 			if ($type == 'plugin'){
-				$target = ABSPATH . PLUGINDIR . '/';
+				$target = WP_PLUGIN_DIR . '/';
 			} else if ($type == 'theme'){
 				if (function_exists('get_theme_root')){
 					$target = get_theme_root() . '/';
 				} else {
-					$target = ABSPATH . 'wp-content/themes/';
+					$target = WP_CONTENT_DIR . '/themes/';
 				} 
 			}
 			if (!$this->is__writable($target)){
